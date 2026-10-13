@@ -120,7 +120,7 @@ header{text-align:center;position:relative}.logo{position:absolute;left:6px;top:
 svg{position:absolute;width:100%;height:100%;transform:rotate(-90deg);filter:drop-shadow(0 0 17px var(--glow))}.track,.progress{fill:none;stroke-width:22}.track{stroke:var(--track)}.progress{stroke:var(--accent);stroke-linecap:round;transition:.3s}
 .content{z-index:2;text-align:center}.phase{font-size:clamp(17px,1.7vw,25px);font-weight:900;letter-spacing:3px;color:var(--accent)}.clock{font-size:clamp(68px,8.5vw,135px);font-weight:950;letter-spacing:-5px;font-variant-numeric:tabular-nums;text-shadow:0 8px 26px #0007}.pct{font-size:clamp(16px,1.5vw,23px);color:var(--muted);font-weight:700}
 .banner{position:absolute;z-index:4;width:min(92%,900px);padding:30px 38px;border:3px solid var(--banner-border);border-radius:24px;background:var(--banner-bg);color:var(--banner-text);text-align:center;font-size:clamp(28px,4vw,57px);font-weight:950;line-height:1.15;letter-spacing:.3px;box-shadow:0 25px 80px #000b,0 0 35px var(--glow);opacity:0;transform:scale(.85);pointer-events:none;transition:.25s}.banner.show{opacity:1;transform:scale(1)}
-footer{text-align:center}.meta{color:var(--muted);margin:0 0 10px}.controls{display:flex;flex-wrap:wrap;justify-content:center;gap:9px}.controls button{padding:12px 19px;border-radius:13px;border:1px solid #ffffff30;background:var(--panel);color:var(--button-text);font-size:16px;font-weight:850;cursor:pointer;box-shadow:0 8px 20px #0004}.controls .primary{background:var(--accent);color:var(--primary-text)}.flash{animation:flash .8s infinite}@keyframes flash{50%{filter:brightness(1.6)}}
+footer{text-align:center}.meta{color:var(--muted);margin:0 0 10px}.controls{display:flex;flex-wrap:wrap;justify-content:center;gap:9px}.controls button{padding:12px 19px;border-radius:13px;border:1px solid #ffffff30;background:var(--panel);color:var(--button-text);font-size:16px;font-weight:850;cursor:pointer;box-shadow:0 8px 20px #0004}.controls .primary{background:var(--accent);color:var(--primary-text)}.controls button:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.45);box-shadow:none}.controls .lock-active{background:#ffb020;color:#211400;border-color:#ffcf66}.flash{animation:flash .8s infinite}@keyframes flash{50%{filter:brightness(1.6)}}
 .shell:fullscreen{padding:clamp(18px,2vw,42px)}.shell:fullscreen .timer{width:min(78vh,78vw);height:min(78vh,78vw);max-width:900px;max-height:900px}.shell:fullscreen .clock{font-size:clamp(100px,12vw,210px)}.shell:fullscreen .phase{font-size:clamp(24px,2.5vw,40px)}.shell:fullscreen .pct{font-size:clamp(20px,2vw,32px)}.shell:fullscreen .title{font-size:clamp(38px,4vw,72px)}.shell:fullscreen .subtitle{font-size:clamp(18px,1.8vw,30px)}.shell:fullscreen .logo{height:clamp(65px,8vh,105px);max-width:140px;opacity:.25}.shell:fullscreen .banner{font-size:clamp(42px,5vw,82px);padding:42px}
 @media(max-width:650px){.shell{padding:12px}.timer{min-width:320px;min-height:320px;width:min(60vh,92vw);height:min(60vh,92vw)}.logo{height:42px}.clock{letter-spacing:-2px}.banner{padding:22px 18px}}
 </style>
@@ -132,7 +132,7 @@ footer{text-align:center}.meta{color:var(--muted);margin:0 0 10px}.controls{disp
 <div class="timer"><div class="disc"></div><svg viewBox="0 0 420 420"><circle class="track" cx="210" cy="210" r="180"/><circle class="progress" id="ring" cx="210" cy="210" r="180"/></svg><div class="content"><div class="phase" id="phase">READY</div><div class="clock" id="clock"></div><div class="pct" id="pct"></div></div></div>
 <div class="banner" id="banner"></div>
 </main>
-<footer><div class="meta"><span id="elapsed"></span> · <span id="finish">Finish time: --:--</span></div><div class="controls"><button class="primary" id="start">▶ Start</button><button id="pause">Ⅱ Pause</button><button id="plus">+ 1 min</button><button id="minus">− 1 min</button><button id="reset">↺ Reset</button><button id="full">⛶ Full Screen</button></div></footer>
+<footer><div class="meta"><span id="elapsed"></span> · <span id="finish">Finish time: --:--</span></div><div class="controls"><button class="primary" id="start">▶ Start</button><button id="pause">Ⅱ Pause</button><button id="plus">+ 1 min</button><button id="plus5">+ 5 min</button><button id="plus10">+ 10 min</button><button id="minus">− 1 min</button><button id="reset">↺ Reset</button><button id="lock">🔒 Lock Controls</button><button id="full">⛶ Full Screen</button></div></footer>
 </div>
 <script>
 const c=__CONFIG__,$=id=>document.getElementById(id);
@@ -141,7 +141,7 @@ if(themeClasses[c.theme])document.body.classList.add(themeClasses[c.theme]);
 $('title').textContent=c.title;$('subtitle').textContent=c.subtitle;
 if(c.showLogo){$('logo').src=c.logo}else{$('logo').style.display='none'}
 const L=2*Math.PI*180;$('ring').style.strokeDasharray=L;
-let phase=c.reading?'reading':'exam',total=c.reading||c.exam,left=total,elapsed=0,running=false,ended=false,target=0,timer=null,said=new Set(),bannerTimer=null;
+let phase=c.reading?'reading':'exam',total=c.reading||c.exam,left=total,elapsed=0,running=false,ended=false,target=0,timer=null,said=new Set(),bannerTimer=null,locked=false;
 function fmt(s){s=Math.max(0,Math.round(s));let h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`}
 function tone(f=650,d=.16){if(!c.sound)return;try{let a=new(AudioContext||webkitAudioContext),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=f;g.gain.setValueAtTime(.13,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.start();o.stop(a.currentTime+d)}catch(e){}}
 function announce(text,seconds=3){clearTimeout(bannerTimer);$('banner').textContent=text;$('banner').classList.add('show');tone();if(seconds<3600)bannerTimer=setTimeout(()=>$('banner').classList.remove('show'),seconds*1000)}
@@ -150,10 +150,11 @@ function finishTime(){let d=new Date(Date.now()+left*1000+(phase==='reading'?c.e
 function tick(){if(!running)return;let previous=left;left=Math.max(0,(target-Date.now())/1000);elapsed=total-left;if(phase==='exam')c.milestones.forEach(m=>{if(previous>m*60&&left<=m*60&&!said.has(m)){said.add(m);announce(`${m} minute${m===1?'':'s'} remaining`)}});if(left<=0){if(phase==='reading'){phase='exam';total=c.exam;left=total;elapsed=0;target=Date.now()+left*1000;said.clear();announce('READING TIME ENDED — WRITING TIME STARTS NOW',4);finishTime()}else{running=false;ended=true;clearInterval(timer);announce(c.endMessage,86400);tone(420,.5)}}render()}
 function start(){if(!running&&!ended){running=true;target=Date.now()+left*1000;timer=setInterval(tick,200);finishTime();render()}}
 function pause(){if(running){tick();running=false;clearInterval(timer);render()}}
-function reset(){running=false;ended=false;clearInterval(timer);clearTimeout(bannerTimer);phase=c.reading?'reading':'exam';total=c.reading||c.exam;left=total;elapsed=0;said.clear();$('banner').classList.remove('show');$('finish').textContent='Finish time: --:--';render()}
-function adjust(seconds){left=Math.max(0,left+seconds);total=Math.max(total,left);if(running)target=Date.now()+left*1000;finishTime();render()}
-$('start').onclick=start;$('pause').onclick=pause;$('reset').onclick=reset;$('plus').onclick=()=>adjust(60);$('minus').onclick=()=>adjust(-60);$('full').onclick=()=>document.fullscreenElement?document.exitFullscreen():$('shell').requestFullscreen();
-document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();running?pause():start()}if(e.key.toLowerCase()==='r')reset();if(e.key.toLowerCase()==='f')$('full').click()});
+function reset(){if(locked)return;const ok=window.confirm('Reset the timer and return to the initial reading/exam time?');if(!ok)return;running=false;ended=false;clearInterval(timer);clearTimeout(bannerTimer);phase=c.reading?'reading':'exam';total=c.reading||c.exam;left=total;elapsed=0;said.clear();$('banner').classList.remove('show');$('finish').textContent='Finish time: --:--';render()}
+function adjust(seconds){if(locked)return;left=Math.max(0,left+seconds);total=Math.max(total,left);if(running)target=Date.now()+left*1000;finishTime();render()}
+function toggleLock(){locked=!locked;['plus','plus5','plus10','minus','reset'].forEach(id=>$(id).disabled=locked);$('lock').textContent=locked?'🔓 Unlock Controls':'🔒 Lock Controls';$('lock').classList.toggle('lock-active',locked)}
+$('start').onclick=start;$('pause').onclick=pause;$('reset').onclick=reset;$('plus').onclick=()=>adjust(60);$('plus5').onclick=()=>adjust(300);$('plus10').onclick=()=>adjust(600);$('minus').onclick=()=>adjust(-60);$('lock').onclick=toggleLock;$('full').onclick=()=>document.fullscreenElement?document.exitFullscreen():$('shell').requestFullscreen();
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();running?pause():start()}if(e.key.toLowerCase()==='r')reset();if(e.key.toLowerCase()==='l')toggleLock();if(e.key.toLowerCase()==='f')$('full').click()});
 render();
 </script>
 </body>
@@ -162,5 +163,4 @@ render();
 st.caption("Projector display preview")
 components.html(html, height=820, scrolling=False)
 with st.expander("Keyboard controls"):
-    st.write("**Space:** start/pause  |  **F:** full screen  |  **R:** reset")
-
+    st.write("**Space:** start/pause  |  **F:** full screen  |  **R:** reset  |  **L:** lock/unlock controls")
