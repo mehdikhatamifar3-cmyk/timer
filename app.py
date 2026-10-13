@@ -163,3 +163,4 @@ st.caption("Projector display preview")
 components.html(html, height=820, scrolling=False)
 with st.expander("Keyboard controls"):
     st.write("**Space:** start/pause  |  **F:** full screen  |  **R:** reset")
+
