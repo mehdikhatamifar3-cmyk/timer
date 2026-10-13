@@ -2,7 +2,134 @@ import base64, json
 import streamlit as st
 import streamlit.components.v1 as components
 st.set_page_config(page_title="ExamTimer Pro",page_icon="⏱️",layout="wide")
-st.markdown("""<style>[data-testid='stAppViewContainer']{background:#07101f}.block-container{padding:1rem;max-width:1600px}[data-testid='stSidebar']{background:#101a2c}[data-testid='stSidebar'] *{color:#eef4ff}</style>""",unsafe_allow_html=True)
+st.markdown("""
+<style>
+/* Main application */
+[data-testid="stAppViewContainer"] {
+    background: #07101f;
+}
+
+.block-container {
+    padding: 1rem;
+    max-width: 1600px;
+}
+
+/* Sidebar panel */
+[data-testid="stSidebar"] {
+    background: #0b1730;
+    border-right: 2px solid #1d3561;
+}
+
+/* General sidebar text */
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] div {
+    color: #ffffff !important;
+}
+
+/* Sidebar captions and helper text */
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p,
+[data-testid="stSidebar"] small {
+    color: #d6e2f5 !important;
+    opacity: 1 !important;
+}
+
+/* Widget labels */
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+    color: #ffffff !important;
+    font-weight: 650 !important;
+}
+
+/* Text and number input boxes */
+[data-testid="stSidebar"] input {
+    color: #102038 !important;
+    background-color: #ffffff !important;
+    -webkit-text-fill-color: #102038 !important;
+    opacity: 1 !important;
+    font-weight: 650 !important;
+}
+
+[data-testid="stSidebar"] input::placeholder {
+    color: #607089 !important;
+    -webkit-text-fill-color: #607089 !important;
+    opacity: 1 !important;
+}
+
+/* Disabled number fields */
+[data-testid="stSidebar"] input:disabled {
+    color: #31445f !important;
+    -webkit-text-fill-color: #31445f !important;
+    background-color: #e9eef5 !important;
+    opacity: 1 !important;
+}
+
+/* Number input plus and minus buttons */
+[data-testid="stSidebar"] [data-testid="stNumberInput"] button,
+[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg {
+    color: #18304f !important;
+    fill: #18304f !important;
+}
+
+/* Select box */
+[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+    background-color: #ffffff !important;
+    border-color: #b9c7da !important;
+}
+
+[data-testid="stSidebar"] div[data-baseweb="select"] span,
+[data-testid="stSidebar"] div[data-baseweb="select"] input,
+[data-testid="stSidebar"] div[data-baseweb="select"] svg {
+    color: #102038 !important;
+    fill: #102038 !important;
+    -webkit-text-fill-color: #102038 !important;
+}
+
+/* Slider values and tick text */
+[data-testid="stSidebar"] [data-testid="stSlider"] div,
+[data-testid="stSidebar"] [data-testid="stSlider"] span {
+    color: #ffffff !important;
+}
+
+/* File uploader */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] section {
+    background-color: #f5f8fc !important;
+    border: 1px dashed #8ea2bd !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stFileUploader"] section div,
+[data-testid="stSidebar"] [data-testid="stFileUploader"] section span,
+[data-testid="stSidebar"] [data-testid="stFileUploader"] section small {
+    color: #31445f !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stFileUploader"] button {
+    color: #102038 !important;
+    background: #ffffff !important;
+    border: 1px solid #9fb0c6 !important;
+}
+
+/* Sidebar collapse control */
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="stSidebarCollapseButton"] svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+}
+
+/* Improve focus visibility */
+[data-testid="stSidebar"] input:focus,
+[data-testid="stSidebar"] div[data-baseweb="select"] > div:focus-within {
+    border-color: #2ed47a !important;
+    box-shadow: 0 0 0 2px rgba(46, 212, 122, 0.25) !important;
+}
+</style>
+""", unsafe_allow_html=True)
 with st.sidebar:
  st.title("ExamTimer Pro"); st.caption("Configure, then launch the projector display.")
  title=st.text_input("Exam or subject title","ME3512 Examination")
