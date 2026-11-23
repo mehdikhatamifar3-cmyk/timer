@@ -2,6 +2,57 @@ import json
 import streamlit as st
 import streamlit.components.v1 as components
 
+# Checked against JCU's published procedures on 23 November 2026.
+# Classroom directions (names, stapled pages and seating) are local instructions.
+# Suspected academic misconduct must be reported; no automatic two-strike
+# dismissal rule is asserted here.
+JCU_MISCONDUCT_URL = (
+    "https://www.jcu.edu.au/policy/academic-governance/student-experience/"
+    "student-academic-misconduct-procedure"
+)
+JCU_EXAM_URL = (
+    "https://www.jcu.edu.au/policy/academic-governance/learning-and-teaching/"
+    "examinations-procedure"
+)
+DEFAULT_INSTRUCTIONS = [
+    (
+        "Write your name first",
+        "Write your full name and student ID in the spaces provided on your "
+        "quiz paper before answering.",
+    ),
+    (
+        "If you separate the pages",
+        "If you separate the stapled pages, write your full name and student ID "
+        "on EVERY page first. Hand in all pages together.",
+    ),
+    (
+        "Spread out in the room",
+        "Spread out and leave an empty seat between classmates wherever "
+        "possible. Follow staff seating directions.",
+    ),
+    (
+        "Permitted materials only",
+        "Only approved materials may be on your desk. Put bags away. Switch "
+        "off and put away phones, watches and unapproved devices.",
+    ),
+    (
+        "Keep your eyes on your own paper",
+        "Work independently. Do not look at another student's answers or show "
+        "your answers. Do not talk or share materials.",
+    ),
+    (
+        "Follow the supervisor's instructions",
+        "Raise your hand for help. Begin only when instructed. Stop writing "
+        "immediately when told. Hand in your complete set of pages.",
+    ),
+]
+INTEGRITY_MESSAGE = (
+    "Looking at others' answers or other suspected cheating will be "
+    "recorded and reported under JCU's Student Academic Misconduct Procedure. "
+    "Follow any warning or direction immediately. A warning does not prevent "
+    "reporting; penalties follow the University process."
+)
+
 st.set_page_config(
     page_title="ExamTimer Pro",
     page_icon="⏱️",
@@ -21,6 +72,7 @@ st.markdown("""
 [data-testid="stSidebar"] input {color:#102038!important;background:#fff!important;-webkit-text-fill-color:#102038!important;opacity:1!important;font-weight:650!important;}
 [data-testid="stSidebar"] input::placeholder {color:#607089!important;-webkit-text-fill-color:#607089!important;opacity:1!important;}
 [data-testid="stSidebar"] input:disabled {color:#31445f!important;-webkit-text-fill-color:#31445f!important;background:#e9eef5!important;opacity:1!important;}
+[data-testid="stSidebar"] textarea {color:#102038!important;background:#fff!important;-webkit-text-fill-color:#102038!important;}
 [data-testid="stSidebar"] div[data-baseweb="select"]>div {background:#fff!important;border-color:#b9c7da!important;}
 [data-testid="stSidebar"] div[data-baseweb="select"] span,[data-testid="stSidebar"] div[data-baseweb="select"] svg {color:#102038!important;fill:#102038!important;}
 [data-testid="stSidebar"] [data-testid="stSlider"] div,[data-testid="stSidebar"] [data-testid="stSlider"] span {color:#fff!important;}
@@ -30,9 +82,36 @@ st.markdown("""
 
 with st.sidebar:
     st.title("ExamTimer Pro")
-    st.caption("Configure, then launch the projector display.")
+    st.caption("Configure the instructions and timer, then launch the projector display.")
     title = st.text_input("Exam or subject title", "ME3512 Examination")
     subtitle = st.text_input("Subtitle", "Please manage your time carefully")
+
+    st.subheader("Pre-quiz instructions")
+    start_with_instructions = st.toggle("Open on instructions page", True)
+    permitted_materials = st.text_area(
+        "Permitted materials for this quiz",
+        "Standard stationery. Calculators, notes and other materials only if "
+        "expressly permitted for this quiz.",
+        height=100,
+        max_chars=600,
+    )
+    extra_comments_raw = st.text_area(
+        "Extra comments (one per line)",
+        "",
+        height=100,
+        max_chars=3000,
+        help="These appear below the main instructions. Leave blank if not needed.",
+    )
+    instruction_font_size = st.slider("Instruction text size", 18, 32, 22, 1)
+    instruction_cards = []
+    with st.expander("Edit the six main instructions"):
+        for index, (heading, default_text) in enumerate(DEFAULT_INSTRUCTIONS):
+            text = st.text_area(
+                heading, default_text, height=115,
+                max_chars=1000, key=f"instruction_{index}",
+            )
+            instruction_cards.append({"title": heading, "text": text})
+    st.caption("Set sidebar options before starting. Changing them reloads the display.")
 
     st.subheader("Timing")
     reading_on = st.toggle("Include reading time", True)
@@ -91,6 +170,12 @@ config = {
     "showLogo": show_logo,
     "collapseSidebar": collapse_sidebar,
     "logo": "https://www.jcu.edu.au/__data/assets/image/0017/2322521/JCU-Logo-Shield-RGB-copy.png",
+    "startPage": "instructions" if start_with_instructions else "timer",
+    "instructions": instruction_cards,
+    "instructionFontSize": instruction_font_size,
+    "permittedMaterials": permitted_materials.strip(),
+    "extraComments": [line.strip() for line in extra_comments_raw.splitlines() if line.strip()],
+    "integrityMessage": INTEGRITY_MESSAGE,
 }
 config_json = json.dumps(config).replace("</", "<\\/")
 
@@ -107,6 +192,7 @@ html = r"""<!doctype html>
  --button-text:#8799b2;--button-hover:#c7d5e8;--button-border:rgba(119,143,174,.20);--button-bg:rgba(18,34,56,.34);--primary-text:#9fc8b0;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;height:100%;overflow:hidden;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
 body.light{--bg:#edf3fb;--panel:#fff;--text:#102038;--muted:#52637b;--track:#d5dfeb;--banner-bg:#102038;--banner-text:#fff;--button-text:#102038}
 body.slate{--bg:#171a21;--panel:#242936;--text:#f7f8fb;--muted:#b8bfcc;--track:#3b4353;--banner-bg:#f7f8fb;--banner-text:#171a21}
@@ -118,7 +204,28 @@ body.jcu{--bg:#061b35;--panel:#0b315a;--text:#f7fbff;--muted:#b9cee0;--track:#28
 body.engineering{--bg:#111418;--panel:#242a31;--text:#f3f6f8;--muted:#aeb8c2;--track:#45505c;--banner-bg:#f3f6f8;--banner-text:#111418;--button-text:#f3f6f8}
 body.examwhite{--bg:#f7f8fa;--panel:#fff;--text:#111827;--muted:#4b5563;--track:#d1d5db;--banner-bg:#111827;--banner-text:#fff;--button-text:#111827}
 body.lecture{--bg:#071c33;--panel:#0d3458;--text:#f5fbff;--muted:#b8d4e8;--track:#28577d;--banner-bg:#f5fbff;--banner-text:#092744;--button-text:#fff}
-.shell{height:100vh;min-height:640px;padding:18px 24px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;background:radial-gradient(circle at 50% 42%,var(--glow),transparent 34%),var(--bg);transition:.4s}
+.shell{height:100vh;min-height:0;padding:18px 24px;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;background:radial-gradient(circle at 50% 42%,var(--glow),transparent 34%),var(--bg);transition:.4s}
+.page-nav{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0 8px}
+.page-nav button{font:inherit;font-size:15px;font-weight:800;padding:9px 18px;border:1px solid var(--track);border-radius:999px;color:var(--muted);background:var(--panel);cursor:pointer}
+.page-nav button.active{color:var(--text);border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.page-nav button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.page-status{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;padding:0 8px}
+.instructions-page{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-color:var(--track) var(--bg);padding:8px 8px 12px;scroll-padding:12px}
+.instruction-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:1500px;margin:0 auto}
+.instruction-card{background:var(--panel);border:1px solid var(--track);border-radius:16px;padding:15px 18px;display:grid;grid-template-columns:35px minmax(0,1fr);gap:11px;align-items:start;box-shadow:0 5px 16px #0002}
+.instruction-number{color:var(--accent);font-size:21px;font-weight:900;line-height:1.4}
+.instruction-card h2{font-size:clamp(20px,1.9vw,29px);line-height:1.2;margin:0 0 7px;font-weight:850;overflow-wrap:anywhere}
+.instruction-card p{font-size:var(--instruction-font,23px);line-height:1.35;margin:0;color:var(--text);white-space:pre-line;overflow-wrap:anywhere}
+.materials-note{grid-column:1/-1;border-left:4px solid var(--accent)}
+.integrity-note,.extra-comments{grid-column:1/-1;background:var(--panel);border:1px solid var(--track);border-radius:16px;padding:15px 18px}
+.integrity-note{border-left:4px solid #ffb020}
+.integrity-note h2,.extra-comments h2{font-size:clamp(20px,1.8vw,27px);margin:0 0 7px}
+.integrity-note p,.extra-comments li{font-size:var(--instruction-font,23px);line-height:1.35;margin:0;white-space:pre-line;overflow-wrap:anywhere}
+.extra-comments ul{padding-left:25px;margin:0}.extra-comments li+li{margin-top:8px}
+.instruction-note{font-size:14px;color:var(--muted);margin:8px 0 10px}
+.instructions-mode{--accent:#51c9ff;--glow:#51c9ff22}.instructions-mode .header-finish{display:none}
+body.light .instructions-mode,body.sand .instructions-mode,body.examwhite .instructions-mode{--accent:#006797;--glow:#00679718}
+@media(max-width:800px){.instruction-grid{grid-template-columns:1fr}.page-status{width:100%;text-align:center}.instruction-card{padding:13px}.instruction-card p,.integrity-note p,.extra-comments li{font-size:clamp(18px,3.5vw,var(--instruction-font,23px))}}
 header{text-align:center;position:relative}.logo{position:absolute;left:6px;top:3px;height:62px;max-width:92px;object-fit:contain;opacity:.30;filter:saturate(.65);transition:.25s}
 .title{font-size:clamp(27px,3vw,48px);font-weight:900}.subtitle{font-size:clamp(14px,1.4vw,22px);color:var(--muted);margin-top:5px}.header-finish{font-size:clamp(13px,1.15vw,18px);color:var(--muted);font-weight:750;margin-top:7px}
 .stage{display:grid;place-items:center;position:relative;overflow:visible;min-height:0;padding:18px 30px}.timer{width:min(57vh,590px);height:min(57vh,590px);min-width:350px;min-height:350px;position:relative;display:grid;place-items:center;perspective:1000px;overflow:visible;margin:12px}
@@ -134,11 +241,15 @@ footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow
 <body>
 <div class="shell" id="shell">
 <header><img class="logo" id="logo"><div class="title" id="title"></div><div class="subtitle" id="subtitle"></div><div class="header-finish" id="headerFinish">Finish time: --:--</div></header>
-<main class="stage">
+<nav class="page-nav" aria-label="Display pages"><button type="button" id="instructionsTab" aria-controls="instructionsPage" aria-pressed="false">Before the quiz</button><button type="button" id="timerTab" aria-controls="timerPage" aria-pressed="false">Timer</button><span class="page-status" id="pageStatus" role="timer" aria-live="off"></span></nav>
+<main class="instructions-page" id="instructionsPage" aria-label="Before the quiz" tabindex="0" hidden>
+<div class="instruction-grid" id="instructionGrid"></div>
+</main>
+<main class="stage" id="timerPage" aria-label="Countdown timer" hidden>
 <div class="timer"><div class="disc"></div><div class="markers"><span class="marker m75" title="75%"></span><span class="marker m50" title="50%"></span><span class="marker m25" title="25%"></span><span class="marker m10" title="10%"></span></div><svg viewBox="0 0 420 420"><circle class="track" cx="210" cy="210" r="180"/><circle class="progress" id="ring" cx="210" cy="210" r="180"/></svg><div class="content"><div class="phase" id="phase">READY</div><div class="clock" id="clock"></div><div class="pct" id="pct"></div></div></div>
 <div class="banner" id="banner"></div><div class="end-screen" id="endScreen"><div class="end-line"></div><div class="end-main">TIME EXPIRED</div><div class="end-sub">STOP WRITING NOW</div><div class="end-line"></div></div>
 </main>
-<footer><div class="meta"><span id="elapsed"></span></div><div class="controls"><button class="primary" id="start">▶ Start</button><button id="pause">Ⅱ Pause</button><button id="plus">+ 1 min</button><button id="plus5">+ 5 min</button><button id="plus10">+ 10 min</button><button id="minus">− 1 min</button><button id="reset">↺ Reset</button><button id="warn15">⚠ 15 min</button><button id="warn5">⚠ 5 min</button><button id="stopmsg">■ Stop Writing</button><button id="lock">🔒 Lock Controls</button><button id="full">⛶ Full Screen</button></div></footer>
+<footer><div id="instructionFooter"><div class="instruction-note">Approved assessment adjustments still apply. Do not begin until instructed.</div><div class="controls"><button class="primary" id="showTimer">▶ Show timer</button><button id="instructionsFull">⛶ Full Screen</button></div></div><div id="timerFooter" hidden><div class="meta"><span id="elapsed"></span></div><div class="controls"><button class="primary" id="start">▶ Start</button><button id="pause">Ⅱ Pause</button><button id="plus">+ 1 min</button><button id="plus5">+ 5 min</button><button id="plus10">+ 10 min</button><button id="minus">− 1 min</button><button id="reset">↺ Reset</button><button id="warn15">⚠ 15 min</button><button id="warn5">⚠ 5 min</button><button id="stopmsg">■ Stop Writing</button><button id="lock">🔒 Lock Controls</button><button id="full">⛶ Full Screen</button></div></div></footer>
 </div>
 <script>
 const c=__CONFIG__,$=id=>document.getElementById(id);
@@ -148,10 +259,52 @@ $('title').textContent=c.title;$('subtitle').textContent=c.subtitle;
 if(c.showLogo){$('logo').src=c.logo}else{$('logo').style.display='none'}
 const L=2*Math.PI*180;$('ring').style.strokeDasharray=L;
 let phase=c.reading?'reading':'exam',total=c.reading||c.exam,left=total,elapsed=0,running=false,ended=false,target=0,timer=null,said=new Set(),bannerTimer=null,locked=false;
+let currentPage=c.startPage;
+document.documentElement.style.setProperty('--instruction-font',c.instructionFontSize+'px');
+function addInstructionCard(heading,text,index){
+ if(!text.trim())return;
+ const card=document.createElement('article');card.className='instruction-card';
+ const number=document.createElement('div');number.className='instruction-number';number.textContent=String(index+1).padStart(2,'0');number.setAttribute('aria-hidden','true');
+ const content=document.createElement('div'),h=document.createElement('h2'),p=document.createElement('p');h.textContent=heading;p.textContent=text;
+ content.append(h,p);card.append(number,content);$('instructionGrid').append(card);
+}
+c.instructions.forEach((item,index)=>addInstructionCard(item.title,item.text,index));
+function addInstructionNote(heading,text,className){
+ const box=document.createElement('section');box.className=className;
+ const h=document.createElement('h2'),p=document.createElement('p');h.textContent=heading;p.textContent=text;box.append(h,p);$('instructionGrid').append(box);
+}
+if(c.permittedMaterials)addInstructionNote('Permitted for this quiz',c.permittedMaterials,'extra-comments materials-note');
+addInstructionNote('Academic integrity',c.integrityMessage,'integrity-note');
+if(c.extraComments.length){
+ const box=document.createElement('section');box.className='extra-comments';
+ const h=document.createElement('h2'),list=document.createElement('ul');h.textContent='Additional instructions';
+ c.extraComments.forEach(text=>{const li=document.createElement('li');li.textContent=text;list.append(li)});box.append(h,list);$('instructionGrid').append(box);
+}
+function showPage(page){
+ currentPage=page;const instructions=page==='instructions';
+ $('instructionsPage').hidden=!instructions;$('timerPage').hidden=instructions;
+ $('instructionFooter').hidden=!instructions;$('timerFooter').hidden=instructions;
+ $('instructionsTab').classList.toggle('active',instructions);$('timerTab').classList.toggle('active',!instructions);
+ $('instructionsTab').setAttribute('aria-pressed',String(instructions));$('timerTab').setAttribute('aria-pressed',String(!instructions));
+ $('shell').classList.toggle('instructions-mode',instructions);
+ $('subtitle').textContent=instructions?'Please read these instructions before we begin':c.subtitle;
+ render();
+}
 function fmt(s){s=Math.max(0,Math.round(s));let h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`}
 function tone(f=650,d=.16){if(!c.sound)return;try{let a=new(AudioContext||webkitAudioContext),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=f;g.gain.setValueAtTime(.13,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.start();o.stop(a.currentTime+d)}catch(e){}}
-function announce(text,seconds=3){clearTimeout(bannerTimer);$('banner').textContent=text;$('banner').classList.add('show');tone();if(seconds<3600)bannerTimer=setTimeout(()=>$('banner').classList.remove('show'),seconds*1000)}
-function render(){let p=total?Math.max(0,left/total*100):0,color=phase==='reading'?'#2f8cff':p<=c.red?'#ff4d5e':p<=c.amber?'#ffb020':'#2ed47a',thickness=p<=c.flash?34:p<=c.red?29:p<=c.amber?25:22;document.documentElement.style.setProperty('--accent',color);document.documentElement.style.setProperty('--glow',color+'66');document.documentElement.style.setProperty('--banner-border',color);$('ring').style.strokeDashoffset=L*(1-p/100);$('ring').style.strokeWidth=thickness;$('phase').textContent=ended?'FINISHED':phase==='reading'?'📖 READING TIME':'✍ WRITING TIME';$('clock').textContent=fmt(left);$('pct').innerHTML='<strong>'+Math.ceil(p)+'%</strong><br><span style="font-size:.72em;letter-spacing:2px">REMAINING</span>';$('elapsed').textContent='Elapsed '+fmt(elapsed);$('shell').classList.toggle('flash',p<=c.flash&&running);$('start').textContent=running?'Running':'▶ '+(elapsed?'Resume':'Start');$('endScreen').classList.toggle('show',ended)}
+function announce(text,seconds=3){if(currentPage!=='timer')showPage('timer');clearTimeout(bannerTimer);$('banner').textContent=text;$('banner').classList.add('show');tone();if(seconds<3600)bannerTimer=setTimeout(()=>$('banner').classList.remove('show'),seconds*1000)}
+function render(){
+ let p=total?Math.max(0,left/total*100):0,color=phase==='reading'?'#2f8cff':p<=c.red?'#ff4d5e':p<=c.amber?'#ffb020':'#2ed47a',thickness=p<=c.flash?34:p<=c.red?29:p<=c.amber?25:22;
+ document.documentElement.style.setProperty('--accent',color);document.documentElement.style.setProperty('--glow',color+'66');document.documentElement.style.setProperty('--banner-border',color);
+ $('ring').style.strokeDashoffset=L*(1-p/100);$('ring').style.strokeWidth=thickness;
+ $('phase').textContent=ended?'FINISHED':phase==='reading'?'📖 READING TIME':'✍ WRITING TIME';$('clock').textContent=fmt(left);
+ $('pct').innerHTML='<strong>'+Math.ceil(p)+'%</strong><br><span style="font-size:.72em;letter-spacing:2px">REMAINING</span>';
+ $('elapsed').textContent='Elapsed '+fmt(elapsed);
+ $('shell').classList.toggle('flash',currentPage==='timer'&&p<=c.flash&&running);
+ $('start').textContent=running?'Running':'▶ '+(elapsed?'Resume':'Start');$('endScreen').classList.toggle('show',ended);
+ const status=ended?'Time expired':running?`${phase==='reading'?'Reading':'Writing'} · ${fmt(left)} remaining`:elapsed?`Paused · ${fmt(left)} remaining`:'Timer ready';
+ if($('pageStatus').textContent!==status)$('pageStatus').textContent=status;
+}
 function finishTime(){let d=new Date(Date.now()+left*1000+(phase==='reading'?c.exam*1000:0));$('headerFinish').textContent='Finish time: '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
 function tick(){if(!running)return;let previous=left;left=Math.max(0,(target-Date.now())/1000);elapsed=total-left;if(phase==='exam')c.milestones.forEach(m=>{if(previous>m*60&&left<=m*60&&!said.has(m)){said.add(m);announce(`${m} minute${m===1?'':'s'} remaining`)}});if(left<=0){if(phase==='reading'){phase='exam';total=c.exam;left=total;elapsed=0;target=Date.now()+left*1000;said.clear();announce('READING TIME ENDED — WRITING TIME STARTS NOW',4);finishTime()}else{running=false;ended=true;clearInterval(timer);announce(c.endMessage,86400);tone(420,.5)}}render()}
 function collapseSidebar(){if(!c.collapseSidebar)return;try{const b=window.parent.document.querySelector('[data-testid="stSidebarCollapseButton"] button');if(b)b.click()}catch(e){}}
@@ -161,15 +314,46 @@ function reset(){if(locked)return;const ok=window.confirm('Reset the timer and r
 function adjust(seconds){if(locked)return;left=Math.max(0,left+seconds);total=Math.max(total,left);if(running)target=Date.now()+left*1000;finishTime();render()}
 function manualWarning(text,seconds=5){announce(text,seconds)}
 function toggleLock(){locked=!locked;['plus','plus5','plus10','minus','reset'].forEach(id=>$(id).disabled=locked);$('lock').textContent=locked?'🔓 Unlock Controls':'🔒 Lock Controls';$('lock').classList.toggle('lock-active',locked)}
-$('start').onclick=start;$('pause').onclick=pause;$('reset').onclick=reset;$('plus').onclick=()=>adjust(60);$('plus5').onclick=()=>adjust(300);$('plus10').onclick=()=>adjust(600);$('minus').onclick=()=>adjust(-60);$('warn15').onclick=()=>manualWarning('⚠ 15 MINUTES REMAINING',5);$('warn5').onclick=()=>manualWarning('⚠ 5 MINUTES REMAINING',5);$('stopmsg').onclick=()=>manualWarning('STOP WRITING NOW',8);$('lock').onclick=toggleLock;$('full').onclick=()=>document.fullscreenElement?document.exitFullscreen():$('shell').requestFullscreen();
-const controls=document.querySelector('.controls');controls.classList.add('controls-visible');
-document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();running?pause():start()}if(e.key.toLowerCase()==='r')reset();if(e.key.toLowerCase()==='l')toggleLock();if(e.key.toLowerCase()==='f')$('full').click()});
-controls.classList.add('controls-visible');render();
+$('start').onclick=start;$('pause').onclick=pause;$('reset').onclick=reset;$('plus').onclick=()=>adjust(60);$('plus5').onclick=()=>adjust(300);$('plus10').onclick=()=>adjust(600);$('minus').onclick=()=>adjust(-60);$('warn15').onclick=()=>manualWarning('⚠ 15 MINUTES REMAINING',5);$('warn5').onclick=()=>manualWarning('⚠ 5 MINUTES REMAINING',5);$('stopmsg').onclick=()=>manualWarning('STOP WRITING NOW',8);$('lock').onclick=toggleLock;
+async function toggleFullscreen(){try{if(document.fullscreenElement){await document.exitFullscreen()}else{await $('shell').requestFullscreen()}}catch(e){console.warn('Full screen is unavailable in this browser. Use the browser full-screen option instead.')}}
+$('full').onclick=toggleFullscreen;$('instructionsFull').onclick=toggleFullscreen;
+$('instructionsTab').onclick=()=>showPage('instructions');$('timerTab').onclick=()=>showPage('timer');$('showTimer').onclick=()=>showPage('timer');
+document.querySelectorAll('.controls').forEach(control=>control.classList.add('controls-visible'));
+document.addEventListener('keydown',e=>{
+ if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
+ const key=e.key.toLowerCase();
+ if(key==='i')showPage('instructions');if(key==='t')showPage('timer');if(key==='f')toggleFullscreen();
+ if(currentPage==='timer'){
+  if(e.code==='Space'){e.preventDefault();running?pause():start()}
+  if(key==='r')reset();if(key==='l')toggleLock();
+ }
+});
+showPage(c.startPage);
 </script>
 </body>
 </html>""".replace("__CONFIG__", config_json)
 
-st.caption("Projector display preview")
+st.caption("Projector preview • Use Before the quiz / Timer to switch pages without resetting the countdown.")
 components.html(html, height=820, scrolling=False)
 with st.expander("Keyboard controls"):
-    st.write("**Space:** start/pause  |  **F:** full screen  |  **R:** reset  |  **L:** lock/unlock controls")
+    st.write(
+        "**I:** instructions  |  **T:** timer  |  **F:** full screen  |  "
+        "**Space:** start/pause on the timer page  |  "
+        "**R:** reset on the timer page  |  **L:** lock/unlock on the timer page"
+    )
+with st.expander("JCU policy reference (staff)"):
+    st.markdown(
+        "**Checked 23 November 2026.** JCU requires staff to report suspected "
+        "academic misconduct with supporting evidence (Student Academic "
+        "Misconduct Procedure, clause 1.1). Findings and penalties are decided "
+        "through the University's process, with an opportunity for the student "
+        "to respond (clauses 4–6). The published procedures do not establish an "
+        "automatic 'first warning, second incident: collect the paper and dismiss "
+        "the student' rule. A warning does not replace reporting suspected "
+        "misconduct.\n\n"
+        "The directions about names, separating stapled pages and seating are "
+        "classroom instructions. Use the permitted materials specified for the "
+        "assessment and honour approved assessment adjustments.\n\n"
+        f"[Student Academic Misconduct Procedure]({JCU_MISCONDUCT_URL}) · "
+        f"[Examinations Procedure for Students]({JCU_EXAM_URL})"
+    )
