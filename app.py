@@ -75,6 +75,33 @@ INTEGRITY_MESSAGE = (
     "reporting; penalties follow the University process."
 )
 
+# Each theme has its own ring colour; a separate picker can override it.
+THEME_COLOURS = {
+    "Aurora": "#64E8CE",
+    "Candy Pop": "#FF82D3",
+    "Sunset Glow": "#FFAE75",
+    "Tropical Lagoon": "#53DDF3",
+    "Electric Violet": "#C59AFF",
+    "Coral Reef": "#FF8A9E",
+    "Peach Sorbet": "#B33D70",
+    "Midnight": "#77ABFF",
+    "Light": "#4165CE",
+    "Slate": "#C4A3FF",
+    "Ocean": "#5CD5F5",
+    "Forest": "#85E0AA",
+    "High Contrast": "#FFF200",
+    "Warm Sand": "#A65030",
+    "JCU Blue & Gold": "#F4C542",
+    "Engineering Graphite": "#FFAF62",
+    "Examination White": "#2459B8",
+    "Lecture Blue": "#6ECAFF",
+}
+RING_COLOURS = {
+    "Mint": "#64E8CE", "Sky blue": "#73CFFF", "Violet": "#C59AFF",
+    "Pink": "#FF82D3", "Coral": "#FF8A9E", "Gold": "#FFD16A",
+    "Lime": "#BCE878", "White": "#F5F8FF", "Classic green": "#2ED47A",
+}
+
 st.set_page_config(
     page_title="ExamTimer Pro",
     page_icon="⏱️",
@@ -86,7 +113,11 @@ st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {background:#07101f;}
 .block-container {padding:1rem;max-width:1600px;}
-[data-testid="stSidebar"] {background:#0b1730;border-right:2px solid #1d3561;}
+[data-testid="stSidebar"] {background:linear-gradient(165deg,#161c3d,#0b1730 65%);border-right:1px solid #37416b;}
+[data-testid="stSidebar"] [data-testid="stExpander"] {border:1px solid #394569;border-radius:14px;background:rgba(255,255,255,.025);margin-bottom:8px;}
+[data-testid="stSidebar"] [data-testid="stExpander"] summary {font-weight:750;padding-top:12px;padding-bottom:12px;}
+[data-testid="stSidebar"] [data-testid="stForm"] {border:0;padding:0;}
+[data-testid="stSidebar"] [data-testid="stFormSubmitButton"] button {width:100%;background:#6957d9;color:#fff;border:1px solid #9a8af1;font-weight:750;border-radius:12px;}
 [data-testid="stSidebar"] h1,[data-testid="stSidebar"] h2,[data-testid="stSidebar"] h3,
 [data-testid="stSidebar"] p,[data-testid="stSidebar"] label,[data-testid="stSidebar"] span {color:#fff!important;}
 [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p,[data-testid="stSidebar"] small {color:#d6e2f5!important;opacity:1!important;}
@@ -104,99 +135,106 @@ st.markdown("""
 
 with st.sidebar:
     st.title("ExamTimer Pro")
-    st.caption("Configure the instructions and timer, then launch the projector display.")
-    title = st.text_input("Exam or subject title", "ME3512 Examination")
-    subtitle = st.text_input("Subtitle", "Please manage your time carefully")
+    st.caption("Open a section, make your changes, then apply settings.")
+    # A form batches edits, so opening a picker does not reload the timer.
+    with st.form("display_settings"):
+        with st.expander("1 · Timer setup", expanded=True):
+            title = st.text_input("Exam or subject title", "ME3512 Examination")
+            subtitle = st.text_input("Subtitle", "Please manage your time carefully")
+            c1, c2 = st.columns(2)
+            with c1:
+                hours = st.number_input("Exam hours", 0, 12, 1, 1)
+            with c2:
+                minutes = st.number_input("Exam minutes", 0, 59, 50, 1)
+            reading_on = st.toggle("Include reading time", True)
+            reading_minutes = st.number_input("Reading minutes", 0, 120, 10, 1)
+            st.caption("Reading minutes are used only when reading time is enabled.")
+            collapse_sidebar = st.toggle("Collapse sidebar on start", True)
 
-    st.subheader("Pre-quiz instructions")
-    start_with_instructions = st.toggle("Open on instructions page", True)
-    instruction_view = st.selectbox(
-        "Instruction display", ["Presentation", "All instructions"]
-    )
-    instruction_autoplay = st.toggle("Auto-play instructions", False)
-    instruction_interval = st.slider("Seconds per instruction", 8, 30, 14, 1)
-    animate_instructions = st.toggle("Animate instructions", True)
-    permitted_materials = st.text_area(
-        "Permitted materials for this quiz",
-        "Standard stationery. Calculators, notes and other materials only if "
-        "expressly permitted for this quiz.",
-        height=100,
-        max_chars=600,
-    )
-    extra_comments_raw = st.text_area(
-        "Extra comments (one per line)",
-        "",
-        height=100,
-        max_chars=3000,
-        help="These appear below the main instructions. Leave blank if not needed.",
-    )
-    instruction_font_size = st.slider("Instruction text size", 18, 32, 22, 1)
-    instruction_cards = []
-    with st.expander("Edit the six main instructions"):
-        for index, (heading, default_text) in enumerate(DEFAULT_INSTRUCTIONS):
-            text = st.text_area(
-                heading, default_text, height=115,
-                max_chars=1000, key=f"instruction_{index}",
+        with st.expander("2 · Colours & themes"):
+            theme = st.selectbox("Display theme", list(THEME_COLOURS))
+            st.caption("Try Aurora, Candy Pop, Sunset Glow or Tropical Lagoon.")
+            ring_choice = st.selectbox(
+                "Timer ring colour", ["Match theme", *RING_COLOURS, "Custom"]
             )
-            instruction_cards.append({
-                "title": heading, "text": text, **INSTRUCTION_VISUALS[index],
-                "overviewTitle": OVERVIEW_INSTRUCTIONS[index][0],
-                "overviewText": (
-                    OVERVIEW_INSTRUCTIONS[index][1]
-                    if text.strip() == default_text.strip() else text
-                ),
-            })
-    st.caption("Presentation builds the board one point at a time. Auto-play finishes with the complete instruction page.")
-    st.caption("Set sidebar options before starting. Changing them reloads the display.")
+            custom_ring_colour = st.color_picker("Custom ring colour", "#A98CFF")
+            st.caption("Select Custom above to use the colour picker.")
+            change_ring_colour = st.toggle("Change ring colour as time runs low", True)
+            reading_colour = st.color_picker("Reading time colour", "#73CFFF")
+            amber_colour = st.color_picker("First warning colour", "#FFD16A")
+            red_colour = st.color_picker("Final warning colour", "#FF718E")
+            show_logo = st.toggle("Show subtle JCU shield", True)
 
-    st.subheader("Subject survey")
-    survey_subject = st.text_input("Survey subject name (optional)", "")
-    survey_message = st.text_area(
-        "Survey reminder message",
-        "Your feedback inspires new ideas, helps us fix issues, and shows us "
-        "what is working well. Please share your experience so we can improve "
-        "the subject.",
-        height=100,
-        max_chars=800,
-    )
-    survey_total = st.number_input("Students in subject (0 = not set)", 0, 10000, 0, 1)
-    survey_completed = st.number_input("Completed survey responses", 0, 10000, 0, 1)
-    survey_participation_known = survey_total > 0 and survey_completed <= survey_total
-    if survey_total > 0 and survey_completed > survey_total:
-        st.sidebar.warning("Completed responses cannot exceed the number of students. Update the survey counts.")
-    st.caption("Enter the current counts from the survey portal. The reminder does not fetch live response data.")
+        with st.expander("3 · Warnings & sound"):
+            amber = st.slider("First colour change below (%)", 10, 80, 50, 5)
+            red = st.slider("Final colour change below (%)", 1, 40, 20, 1)
+            pulse_style = st.selectbox("Final-minute pulse", ["Subtle", "Off", "Gentle"])
+            pulse_minutes = st.number_input("Pulse in final minutes", 1, 15, 5, 1)
+            st.caption("A slow pulse on the ring only. The page and timer text stay steady.")
+            sound = st.toggle("Sound alerts", True)
+            milestones_raw = st.text_input("Warnings at minutes remaining", "30, 15, 5, 1")
+            end_message = st.text_input("End message", "TIME EXPIRED — STOP WRITING")
 
-    st.subheader("Timing")
-    reading_on = st.toggle("Include reading time", True)
-    reading_minutes = st.number_input(
-        "Reading time (minutes)", 0, 120, 10, 1,
-        disabled=not reading_on,
-    )
-    c1, c2 = st.columns(2)
-    with c1:
-        hours = st.number_input("Exam hours", 0, 12, 1, 1)
-    with c2:
-        minutes = st.number_input("Extra minutes", 0, 59, 50, 5)
+        with st.expander("4 · Before the quiz"):
+            start_with_instructions = st.toggle("Open on instructions page", True)
+            instruction_view = st.selectbox("Instruction display", ["Presentation", "All instructions"])
+            instruction_autoplay = st.toggle("Auto-play instructions", False)
+            instruction_interval = st.slider("Seconds per instruction", 8, 30, 14, 1)
+            animate_instructions = st.toggle("Animate instructions", True)
+            instruction_font_size = st.slider("Instruction text size", 18, 32, 22, 1)
+            permitted_materials = st.text_area(
+                "Permitted materials for this quiz",
+                "Standard stationery. Calculators, notes and other materials only if "
+                "expressly permitted for this quiz.", height=100, max_chars=600,
+            )
+            extra_comments_raw = st.text_area(
+                "Extra comments (one per line)", "", height=100, max_chars=3000,
+                help="These appear below the main instructions. Leave blank if not needed.",
+            )
+            st.caption("Edit the six main instructions below. Presentation builds the board one point at a time.")
+            instruction_cards = []
+            for index, (heading, default_text) in enumerate(DEFAULT_INSTRUCTIONS):
+                text = st.text_area(
+                    heading, default_text, height=115,
+                    max_chars=1000, key=f"instruction_{index}",
+                )
+                instruction_cards.append({
+                    "title": heading, "text": text, **INSTRUCTION_VISUALS[index],
+                    "overviewTitle": OVERVIEW_INSTRUCTIONS[index][0],
+                    "overviewText": (
+                        OVERVIEW_INSTRUCTIONS[index][1]
+                        if text.strip() == default_text.strip() else text
+                    ),
+                })
 
-    st.subheader("Visual alerts")
-    amber = st.slider("Amber below (%)", 10, 80, 50, 5)
-    red = st.slider("Red below (%)", 1, 40, 20, 1)
-    flash = st.slider("Flash below (%)", 1, 15, 5, 1)
-    sound = st.toggle("Sound alerts", True)
-    milestones_raw = st.text_input("Warnings at minutes remaining", "30, 15, 5, 1")
-    end_message = st.text_input("End message", "TIME EXPIRED — STOP WRITING")
+        with st.expander("5 · Subject survey"):
+            survey_subject = st.text_input("Survey subject name (optional)", "")
+            survey_message = st.text_area(
+                "Survey reminder message",
+                "Your feedback inspires new ideas, helps us fix issues, and shows us "
+                "what is working well. Please share your experience so we can improve "
+                "the subject.", height=100, max_chars=800,
+            )
+            survey_total = st.number_input("Students in subject (0 = not set)", 0, 10000, 0, 1)
+            survey_completed = st.number_input("Completed survey responses", 0, 10000, 0, 1)
+            st.caption("Enter current counts from the survey portal; these do not update automatically.")
+        st.form_submit_button("Apply settings")
+    st.caption("Use + / − below the timer to change a live countdown. Adding time after it ends resumes it immediately.")
 
-    st.subheader("Appearance")
-    theme = st.selectbox(
-        "Theme",
-        ["Midnight", "Light", "Slate", "Ocean", "Forest", "High Contrast", "Warm Sand", "JCU Blue & Gold", "Engineering Graphite", "Examination White", "Lecture Blue"],
-    )
-    show_logo = st.toggle("Show subtle JCU shield", True)
-    collapse_sidebar = st.toggle("Collapse sidebar when timer starts", True)
+survey_participation_known = survey_total > 0 and survey_completed <= survey_total
+if survey_total > 0 and survey_completed > survey_total:
+    st.sidebar.warning("Completed responses cannot exceed the number of students.")
+if red >= amber:
+    red = amber - 1
+    st.sidebar.info("The final colour change has been placed below the first warning threshold.")
+ring_colour = (
+    custom_ring_colour if ring_choice == "Custom"
+    else RING_COLOURS.get(ring_choice, THEME_COLOURS[theme])
+)
 
 try:
     milestones = sorted(
-        {int(item.strip()) for item in milestones_raw.split(",") if int(item.strip()) > 0},
+        {int(item.strip()) for item in milestones_raw.split(",") if item.strip() and int(item.strip()) > 0},
         reverse=True,
     )
 except ValueError:
@@ -215,7 +253,13 @@ config = {
     "exam": exam_seconds,
     "amber": amber,
     "red": red,
-    "flash": flash,
+    "ringColour": ring_colour,
+    "readingColour": reading_colour,
+    "amberColour": amber_colour,
+    "redColour": red_colour,
+    "changeRingColour": change_ring_colour,
+    "pulseStyle": pulse_style,
+    "pulseMinutes": int(pulse_minutes),
     "sound": sound,
     "milestones": milestones,
     "endMessage": end_message,
@@ -267,6 +311,17 @@ body.jcu{--bg:#061b35;--panel:#0b315a;--text:#f7fbff;--muted:#b9cee0;--track:#28
 body.engineering{--bg:#111418;--panel:#242a31;--text:#f3f6f8;--muted:#aeb8c2;--track:#45505c;--banner-bg:#f3f6f8;--banner-text:#111418;--button-text:#f3f6f8}
 body.examwhite{--bg:#f7f8fa;--panel:#fff;--text:#111827;--muted:#4b5563;--track:#d1d5db;--banner-bg:#111827;--banner-text:#fff;--button-text:#111827}
 body.lecture{--bg:#071c33;--panel:#0d3458;--text:#f5fbff;--muted:#b8d4e8;--track:#28577d;--banner-bg:#f5fbff;--banner-text:#092744;--button-text:#fff}
+body.aurora{--bg:#11142e;--panel:#202447;--text:#f5fbff;--muted:#c3c9eb;--track:#414768;--ambient-a:#8062ef26;--ambient-b:#44ddba20;--ambient-c:#559dff16}
+body.candy{--bg:#251430;--panel:#3c224a;--text:#fff5ff;--muted:#e7c3e7;--track:#674165;--ambient-a:#ff69ba29;--ambient-b:#9f87ff26;--ambient-c:#69d4ef14}
+body.sunset{--bg:#30172b;--panel:#482439;--text:#fff6ed;--muted:#f2c7c1;--track:#754254;--ambient-a:#ff8c5029;--ambient-b:#e76b9d24;--ambient-c:#ba87ef17}
+body.tropical{--bg:#062730;--panel:#103c47;--text:#eefffa;--muted:#b6e1dc;--track:#34616a;--ambient-a:#3fd9e526;--ambient-b:#a2e9761c;--ambient-c:#5e9aff1a}
+body.violet{--bg:#1c123b;--panel:#302051;--text:#faf5ff;--muted:#d6c6ef;--track:#59417c;--ambient-a:#ad6bff30;--ambient-b:#ed79ce20;--ambient-c:#6a97ff20}
+body.coral{--bg:#291b32;--panel:#3e2b47;--text:#fff7f4;--muted:#e7cbd9;--track:#6b4b67;--ambient-a:#ff8a9e2c;--ambient-b:#70d9ce1d;--ambient-c:#ffca8517}
+body.peach{--bg:#fff0e7;--panel:#fffaf4;--text:#522d48;--muted:#805c71;--track:#e7c8d7;--banner-bg:#522d48;--banner-text:#fffaf4;--button-text:#69445c;--ambient-a:#ffb19940;--ambient-b:#c0a5ff29;--ambient-c:#ffcf7626}
+body.light,body.sand,body.examwhite,body.peach{--button-hover:var(--text)}
+.shell{background:radial-gradient(ellipse at 8% 10%,var(--ambient-a,#7c70ef18),transparent 48%),radial-gradient(ellipse at 94% 82%,var(--ambient-b,#52d5d514),transparent 48%),radial-gradient(ellipse at 85% 8%,var(--ambient-c,#659bff12),transparent 38%),var(--bg)!important}
+body.peach .slide-kicker,body.peach .slide-copy strong,body.peach .card-category,body.peach .card-copy strong,body.peach .card-icon,body.peach .spotlight-art{color:var(--slide-ink)}
+body.peach .instructions-mode{--accent:#963f75;--glow:#963f7518}
 .shell{height:100vh;min-height:0;padding:18px 24px;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;background:radial-gradient(circle at 50% 42%,var(--glow),transparent 34%),var(--bg);transition:.4s}
 .page-nav{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0 8px}
 .page-nav button{font:inherit;font-size:15px;font-weight:800;padding:9px 18px;border:1px solid var(--track);border-radius:999px;color:var(--muted);background:var(--panel);cursor:pointer}
@@ -325,10 +380,10 @@ header{text-align:center;position:relative}.logo{position:absolute;left:6px;top:
 .title{font-size:clamp(27px,3vw,48px);font-weight:900}.subtitle{font-size:clamp(14px,1.4vw,22px);color:var(--muted);margin-top:5px}.header-finish{font-size:clamp(13px,1.15vw,18px);color:var(--muted);font-weight:750;margin-top:7px}
 .stage{display:grid;place-items:center;position:relative;overflow:visible;min-height:0;padding:18px 30px}.timer{width:min(57vh,590px);height:min(57vh,590px);min-width:350px;min-height:350px;position:relative;display:grid;place-items:center;perspective:1000px;overflow:visible;margin:12px}
 .disc{position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle at 50% 34%,rgba(255,255,255,.14),transparent 25%),var(--panel);box-shadow:0 38px 75px #0008,inset 0 8px 16px #fff1,inset 0 -22px 40px #0006;transform:rotateX(7deg)}
-.timer>svg{position:absolute;inset:-9%;width:118%;height:118%;padding:9%;overflow:visible;transform:rotate(-90deg);filter:none}.track,.progress{fill:none;stroke-width:22}.track{stroke:var(--track)}.progress{stroke:var(--accent);stroke-linecap:round;transition:stroke .3s,stroke-width .45s,stroke-dashoffset .3s;filter:drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 15px var(--glow));animation:ringBreathe 8s ease-in-out infinite;will-change:filter}@keyframes ringBreathe{0%,100%{filter:drop-shadow(0 0 7px var(--accent)) drop-shadow(0 0 12px var(--glow))}50%{filter:drop-shadow(0 0 12px var(--accent)) drop-shadow(0 0 24px var(--glow))}}
-.content{z-index:2;text-align:center}.phase{font-size:clamp(17px,1.7vw,25px);font-weight:900;letter-spacing:3px;color:var(--accent)}.clock{font-size:clamp(68px,8.5vw,135px);font-weight:950;letter-spacing:-5px;font-variant-numeric:tabular-nums;text-shadow:0 8px 26px #0007}.pct{font-size:clamp(16px,1.5vw,23px);color:var(--muted);font-weight:700}
+.timer>svg{position:absolute;inset:-9%;width:118%;height:118%;padding:9%;overflow:visible;transform:rotate(-90deg);filter:none}.track,.progress{fill:none;stroke-width:22}.track{stroke:var(--track)}.progress{stroke:var(--accent);stroke-linecap:round}
+.content{position:absolute;inset:15%;z-index:2;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;text-align:center}.phase{width:100%;font-size:clamp(15px,1.55vw,23px);font-weight:850;letter-spacing:.11em;line-height:1.25;color:var(--accent)}.clock{width:100%;font-size:clamp(56px,7.4vw,119px);font-weight:900;letter-spacing:-.035em;line-height:1.05;font-variant-numeric:tabular-nums;text-shadow:0 5px 18px #0003;white-space:nowrap}.pct{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:clamp(16px,1.4vw,22px);line-height:1.2;color:var(--muted);font-weight:700}.pct-label{font-size:.64em;letter-spacing:.12em}
 .banner{position:absolute;z-index:4;width:min(92%,900px);padding:30px 38px;border:3px solid var(--banner-border);border-radius:24px;background:var(--banner-bg);color:var(--banner-text);text-align:center;font-size:clamp(28px,4vw,57px);font-weight:950;line-height:1.15;letter-spacing:.3px;box-shadow:0 25px 80px #000b,0 0 35px var(--glow);opacity:0;transform:scale(.85);pointer-events:none;transition:.25s}.banner.show{opacity:1;transform:scale(1)}.markers{position:absolute;inset:0;z-index:1;pointer-events:none}.marker{position:absolute;width:9px;height:9px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 3px var(--panel);opacity:.7}.m75{left:50%;top:3%;transform:translateX(-50%)}.m50{right:3%;top:50%;transform:translateY(-50%)}.m25{left:50%;bottom:3%;transform:translateX(-50%)}.m10{left:9%;top:69%}.end-screen{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;background:radial-gradient(circle,#75131d,#260207 72%);color:#fff;opacity:0;pointer-events:none;transition:.35s}.end-screen.show{opacity:1;pointer-events:auto}.end-main{font-size:clamp(58px,8vw,132px);font-weight:950;letter-spacing:2px}.end-sub{font-size:clamp(30px,4vw,68px);font-weight:900;margin-top:12px}.end-line{width:min(72%,900px);height:5px;background:#fff;margin:24px 0;border-radius:4px}
-footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow:visible}.meta{color:var(--muted);margin:0 0 10px}.controls{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:9px;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important;filter:none!important;position:relative;z-index:12}.controls:hover,.controls:focus-within,.controls.controls-visible{opacity:1!important;visibility:visible!important}.controls button{padding:11px 17px;border-radius:12px;border:1px solid var(--button-border);background:var(--button-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--button-text);font-size:15px;font-weight:750;cursor:pointer;box-shadow:none;opacity:1!important;visibility:visible!important;transition:color .22s ease,background .22s ease,border-color .22s ease,transform .22s ease}.controls button:hover,.controls button:focus-visible{color:var(--button-hover);background:rgba(84,112,148,.22);border-color:rgba(151,176,207,.46);transform:translateY(-1px);outline:none}.controls .primary{background:rgba(46,212,122,.10);color:#93bfa5;border-color:rgba(82,177,121,.25)}.controls .primary:hover{background:rgba(46,212,122,.18);color:#c8ead5;border-color:rgba(82,177,121,.45)}body.light .controls button,body.sand .controls button,body.examwhite .controls button{background:rgba(35,58,84,.07);color:#66778d;border-color:rgba(52,76,105,.17)}body.light .controls button:hover,body.sand .controls button:hover,body.examwhite .controls button:hover{background:rgba(35,58,84,.13);color:#2f435b;border-color:rgba(52,76,105,.32)}.controls button:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.45);box-shadow:none}.controls .lock-active{background:rgba(255,176,32,.14);color:#c9a761;border-color:rgba(255,196,91,.32)}.flash{animation:flash .8s infinite}@keyframes flash{50%{filter:brightness(1.6)}}
+footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow:visible}.meta{color:var(--muted);margin:0 0 10px}.controls{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:9px;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important;filter:none!important;position:relative;z-index:12}.controls:hover,.controls:focus-within,.controls.controls-visible{opacity:1!important;visibility:visible!important}.controls button{padding:11px 17px;border-radius:12px;border:1px solid var(--button-border);background:var(--button-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--button-text);font-size:15px;font-weight:750;cursor:pointer;box-shadow:none;opacity:1!important;visibility:visible!important;transition:color .22s ease,background .22s ease,border-color .22s ease,transform .22s ease}.controls button:hover,.controls button:focus-visible{color:var(--button-hover);background:rgba(84,112,148,.22);border-color:rgba(151,176,207,.46);transform:translateY(-1px);outline:none}.controls .primary{background:rgba(46,212,122,.10);color:#93bfa5;border-color:rgba(82,177,121,.25)}.controls .primary:hover{background:rgba(46,212,122,.18);color:#c8ead5;border-color:rgba(82,177,121,.45)}body.light .controls button,body.sand .controls button,body.examwhite .controls button{background:rgba(35,58,84,.07);color:#66778d;border-color:rgba(52,76,105,.17)}body.light .controls button:hover,body.sand .controls button:hover,body.examwhite .controls button:hover{background:rgba(35,58,84,.13);color:#2f435b;border-color:rgba(52,76,105,.32)}.controls button:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.45);box-shadow:none}.controls .lock-active{background:rgba(255,176,32,.14);color:#c9a761;border-color:rgba(255,196,91,.32)}
 .shell:fullscreen{padding:clamp(18px,2vw,42px)}.shell:fullscreen .stage{padding:20px 34px}.shell:fullscreen .timer{width:min(60vh,68vw);height:min(60vh,68vw);max-width:760px;max-height:760px;margin:12px}.shell:fullscreen .clock{font-size:clamp(100px,12vw,210px)}.shell:fullscreen .phase{font-size:clamp(24px,2.5vw,40px)}.shell:fullscreen .pct{font-size:clamp(20px,2vw,32px)}.shell:fullscreen .title{font-size:clamp(38px,4vw,72px)}.shell:fullscreen .subtitle{font-size:clamp(18px,1.8vw,30px)}.shell:fullscreen .logo{height:clamp(65px,8vh,105px);max-width:140px;opacity:.25}.shell:fullscreen .banner{font-size:clamp(42px,5vw,82px);padding:42px}
 @media(max-width:650px){.shell{padding:10px}.stage{padding:12px}.timer{min-width:280px;min-height:280px;width:min(50vh,82vw);height:min(50vh,82vw);margin:8px}.logo{height:42px}.clock{letter-spacing:-2px}.banner{padding:22px 18px}}
 /* The overview is a full-height instruction board; presentation keeps its hero. */
@@ -399,6 +454,32 @@ body.light .survey-mode,body.sand .survey-mode,body.examwhite .survey-mode{--acc
 .no-instruction-motion .survey-page *{transition:none!important}
 @media(prefers-reduced-motion:reduce){.survey-page *{transition:none!important}}
 @media(max-width:850px){.survey-layout{grid-template-columns:minmax(0,1fr)}.participation-card{padding:20px;display:grid;grid-template-columns:minmax(130px,.75fr) minmax(0,1fr);column-gap:15px}.participation-card .survey-eyebrow{grid-column:1/-1}.survey-gauge{grid-column:1;grid-row:2/5;max-width:250px}.participation-value{font-size:52px;margin:0 0 6px;grid-column:2}.participation-count{grid-column:2;font-size:16px}.participation-status{grid-column:2;font-size:20px;margin:10px 0 0}.survey-title{font-size:34px}.survey-copy{padding:0}.survey-message{font-size:21px}.survey-route li{font-size:19px}}
+/* Timer text is centred in a flat disc; only the ring can pulse. */
+.timer,.shell:fullscreen .timer{container-type:inline-size;width:var(--timer-size,48vh);height:var(--timer-size,48vh);min-width:0;min-height:0;max-width:760px;max-height:760px;perspective:none}
+.clock,.shell:fullscreen .clock{font-size:clamp(24px,25cqw,190px)}.clock.has-hours,.shell:fullscreen .clock.has-hours{font-size:clamp(24px,17cqw,130px)}
+.phase,.shell:fullscreen .phase{font-size:clamp(12px,4.5cqw,30px);letter-spacing:.10em}.pct,.shell:fullscreen .pct{font-size:clamp(13px,4.6cqw,30px)}
+.disc{transform:none;background:radial-gradient(circle at 50% 20%,#ffffff0d,transparent 65%),var(--panel);box-shadow:0 20px 60px #0004,inset 0 1px 0 #ffffff12}
+.progress{animation:none;stroke-width:22!important;filter:drop-shadow(0 0 5px var(--glow));transition:stroke .4s,stroke-dashoffset .2s linear}
+.progress.urgent{animation:quietRingPulse 6s ease-in-out infinite}
+@keyframes quietRingPulse{0%,100%{filter:drop-shadow(0 0 4px var(--glow)) brightness(1)}50%{filter:drop-shadow(0 0 6px var(--glow)) brightness(var(--pulse-peak,1.035))}}
+.controls{gap:8px}.control-group{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px}
+.timer-actions{margin-bottom:9px}.timer-actions>.control-group+.control-group{padding-left:12px;border-left:1px solid var(--track)}
+.controls button{color:var(--muted);background:var(--panel);border-color:var(--track);padding:10px 13px;font-size:14px}
+.controls button:hover,.controls button:focus-visible{color:var(--text);border-color:var(--brand);background:var(--brand-soft)}
+.controls .primary,.controls .primary:hover{background:var(--brand-soft);color:var(--text);border-color:var(--brand-border)}
+.controls button:disabled{opacity:.4!important;transform:none;cursor:not-allowed}
+.controls .lock-active{color:#dfaf55;border-color:#dfaf5566}
+.timer-options button{font-size:12px;padding:8px 10px}.timer-options{gap:14px}
+.custom-adjust{border:1px solid var(--track);border-radius:12px;padding:4px 6px}.custom-adjust label{font-size:12px;font-weight:700;color:var(--muted);padding-left:4px}
+.custom-adjust input{width:55px;min-height:30px;border:1px solid var(--track);border-radius:7px;background:var(--bg);color:var(--text);font:inherit;font-size:14px;font-weight:750;text-align:center}
+.custom-adjust input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}.custom-adjust input:disabled{opacity:.45}
+.meta{font-size:12px;margin-bottom:8px;min-height:17px}.meta #timeFeedback:not(:empty)::before{content:' · ';padding:0 4px}#timeFeedback{color:var(--text)}
+.end-screen{border-radius:24px;padding:25px;overflow-y:auto;justify-content:safe center}.end-main{font-size:clamp(36px,6vw,88px)}.end-sub{font-size:clamp(22px,3.2vw,48px)}.end-line{margin:17px 0}
+.end-extra{font:inherit;font-size:clamp(16px,1.5vw,24px);font-weight:850;padding:13px 24px;border:1px solid #fff8;border-radius:14px;background:#fff;color:#631927;cursor:pointer;box-shadow:0 6px 20px #0003}
+.end-extra:disabled{opacity:.45;cursor:not-allowed}.end-extra:focus-visible{outline:3px solid #fff;outline-offset:5px}.end-help{max-width:520px;font-size:14px;line-height:1.5;color:#ffe2e7;margin:14px 0 0}
+.end-screen:not(.show){visibility:hidden}
+@media(prefers-reduced-motion:reduce){.progress,.progress.urgent{animation:none!important;transition:none!important}}
+@media(max-width:650px){.content{inset:12%;gap:9px}.phase{font-size:14px}.clock{font-size:clamp(46px,10vw,76px)}.pct{font-size:16px}.timer-actions>.control-group+.control-group{border:0;padding-left:0}.controls button{padding:8px 10px;font-size:12px}.timer-options{gap:7px}.timer-options button{font-size:11px}.meta{font-size:11px}.end-help{font-size:12px}}
 </style>
 </head>
 <body>
@@ -435,18 +516,35 @@ body.light .survey-mode,body.sand .survey-mode,body.examwhite .survey-mode{--acc
 </main>
 <main class="stage" id="timerPage" aria-label="Countdown timer" hidden>
 <div class="timer"><div class="disc"></div><div class="markers"><span class="marker m75" title="75%"></span><span class="marker m50" title="50%"></span><span class="marker m25" title="25%"></span><span class="marker m10" title="10%"></span></div><svg viewBox="0 0 420 420"><circle class="track" cx="210" cy="210" r="180"/><circle class="progress" id="ring" cx="210" cy="210" r="180"/></svg><div class="content"><div class="phase" id="phase">READY</div><div class="clock" id="clock"></div><div class="pct" id="pct"></div></div></div>
-<div class="banner" id="banner"></div><div class="end-screen" id="endScreen"><div class="end-line"></div><div class="end-main">TIME EXPIRED</div><div class="end-sub">STOP WRITING NOW</div><div class="end-line"></div></div>
+<div class="banner" id="banner"></div><div class="end-screen" id="endScreen" aria-hidden="true"><div class="end-line"></div><div class="end-main">TIME EXPIRED</div><div class="end-sub" id="endSub">STOP WRITING NOW</div><div class="end-line"></div><button class="end-extra" id="endPlus5">+ 5 extra minutes</button><p class="end-help">Adding time resumes the countdown. More time controls are below.</p></div>
 </main>
-<footer><div id="instructionFooter"><div class="instruction-note">Approved assessment adjustments still apply. Do not begin until instructed.</div><div class="controls"><button class="primary" id="showTimer">▶ Show timer</button><button id="instructionsFull">⛶ Full Screen</button></div></div><div id="timerFooter" hidden><div class="meta"><span id="elapsed"></span></div><div class="controls"><button class="primary" id="start">▶ Start</button><button id="pause">Ⅱ Pause</button><button id="plus">+ 1 min</button><button id="plus5">+ 5 min</button><button id="plus10">+ 10 min</button><button id="minus">− 1 min</button><button id="reset">↺ Reset</button><button id="warn15">⚠ 15 min</button><button id="warn5">⚠ 5 min</button><button id="stopmsg">■ Stop Writing</button><button id="lock">🔒 Lock Controls</button><button id="full">⛶ Full Screen</button></div></div><div id="surveyFooter" hidden><div class="controls"><a class="survey-open" id="learnJcuLink" target="_blank" rel="noopener noreferrer">Open LearnJCU ↗</a><button id="surveyFull">⛶ Full Screen</button><button id="surveyTimer">Return to timer</button></div></div></footer>
+<footer>
+<div id="instructionFooter"><div class="instruction-note">Approved assessment adjustments still apply. Do not begin until instructed.</div><div class="controls"><button class="primary" id="showTimer">▶ Show timer</button><button id="instructionsFull">⛶ Full Screen</button></div></div>
+<div id="timerFooter" hidden>
+<div class="meta"><span id="elapsed"></span><span id="timeFeedback" role="status" aria-live="polite"></span></div>
+<div class="controls timer-actions"><div class="control-group"><button class="primary" id="start">▶ Start</button><button id="pause">Ⅱ Pause</button></div><div class="control-group" aria-label="Quick time adjustments"><button id="minus5" title="Subtract five minutes">− 5 min</button><button id="minus" title="Subtract one minute">− 1 min</button><button id="plus" title="Add one minute">+ 1 min</button><button id="plus5" title="Add five minutes, including after time expires">+ 5 min</button><button id="plus10" title="Add ten minutes">+ 10 min</button></div><button id="full">⛶ Full screen</button></div>
+<div class="controls timer-options"><div class="control-group custom-adjust"><label for="adjustMinutes">Minutes</label><input id="adjustMinutes" type="number" min="1" max="720" step="1" value="5" inputmode="numeric"><button id="customMinus" title="Subtract the entered minutes">− Subtract</button><button id="customPlus" title="Add the entered minutes">+ Add</button></div><div class="control-group"><button id="warn15">⚠ 15 min</button><button id="warn5">⚠ 5 min</button><button id="stopmsg">■ Stop writing</button></div><div class="control-group"><button id="reset">↺ Reset</button><button id="lock">🔒 Lock</button></div></div>
+</div>
+<div id="surveyFooter" hidden><div class="controls"><a class="survey-open" id="learnJcuLink" target="_blank" rel="noopener noreferrer">Open LearnJCU ↗</a><button id="surveyFull">⛶ Full Screen</button><button id="surveyTimer">Return to timer</button></div></div>
+</footer>
 </div>
 <script>
 const c=__CONFIG__,$=id=>document.getElementById(id);
-const themeClasses={Light:'light',Slate:'slate',Ocean:'ocean',Forest:'forest','High Contrast':'contrast','Warm Sand':'sand','JCU Blue & Gold':'jcu','Engineering Graphite':'engineering','Examination White':'examwhite','Lecture Blue':'lecture'};
+const themeClasses={Aurora:'aurora','Candy Pop':'candy','Sunset Glow':'sunset','Tropical Lagoon':'tropical','Electric Violet':'violet','Coral Reef':'coral','Peach Sorbet':'peach',Light:'light',Slate:'slate',Ocean:'ocean',Forest:'forest','High Contrast':'contrast','Warm Sand':'sand','JCU Blue & Gold':'jcu','Engineering Graphite':'engineering','Examination White':'examwhite','Lecture Blue':'lecture'};
 if(themeClasses[c.theme])document.body.classList.add(themeClasses[c.theme]);
+document.documentElement.style.setProperty('--brand',c.ringColour);
+document.documentElement.style.setProperty('--brand-soft',c.ringColour+'18');
+document.documentElement.style.setProperty('--brand-border',c.ringColour+'65');
+document.documentElement.style.setProperty('--pulse-peak',c.pulseStyle==='Gentle'?'1.075':'1.035');
 $('title').textContent=c.title;$('subtitle').textContent=c.subtitle;
+$('endSub').textContent=c.endMessage.replace(/^TIME EXPIRED\s*[—–:\-]?\s*/i,'')||'STOP WRITING NOW';
 if(c.showLogo){$('logo').src=c.logo}else{$('logo').style.display='none'}
 const L=2*Math.PI*180;$('ring').style.strokeDasharray=L;
 let phase=c.reading?'reading':'exam',total=c.reading||c.exam,left=total,elapsed=0,running=false,ended=false,target=0,timer=null,said=new Set(),bannerTimer=null,locked=false;
+let hasStarted=false,plannedExam=c.exam,endedAt=0,lastSavedAt=0,feedbackTimer=null;
+let storagePath=location.pathname;
+try{storagePath=window.parent.location.pathname}catch(e){}
+const storageKey='examtimer-pro:live:v2:'+storagePath;
 let currentPage=c.startPage;
 document.documentElement.style.setProperty('--instruction-font',c.instructionFontSize+'px');
 const prefersReducedMotion=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -633,43 +731,149 @@ function showPage(page){
  $('shell').classList.toggle('survey-mode',survey);
  $('subtitle').textContent=instructions?'A few simple steps before we begin':survey?'Please complete your subject survey in LearnJCU':c.subtitle;
  if(survey)updateSurveyReminder(true);
- renderInstructionBoard();render();
+ renderInstructionBoard();render();saveTimer(true);requestAnimationFrame(fitTimer);
+}
+function fitTimer(){
+ const stage=$('timerPage');if(stage.hidden)return;
+ const css=getComputedStyle(stage);
+ const w=stage.clientWidth-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight)-24;
+ const h=stage.clientHeight-parseFloat(css.paddingTop)-parseFloat(css.paddingBottom)-24;
+ const size=Math.max(110,Math.min(w,h,document.fullscreenElement?760:590));
+ stage.querySelector('.timer').style.setProperty('--timer-size',size+'px');
 }
 function fmt(s){s=Math.max(0,Math.round(s));let h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`}
 function tone(f=650,d=.16){if(!c.sound)return;try{let a=new(AudioContext||webkitAudioContext),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=f;g.gain.setValueAtTime(.13,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.start();o.stop(a.currentTime+d)}catch(e){}}
 function announce(text,seconds=3){if(currentPage!=='timer')showPage('timer');clearTimeout(bannerTimer);$('banner').textContent=text;$('banner').classList.add('show');tone();if(seconds<3600)bannerTimer=setTimeout(()=>$('banner').classList.remove('show'),seconds*1000)}
 function render(){
- let p=total?Math.max(0,left/total*100):0,color=phase==='reading'?'#2f8cff':p<=c.red?'#ff4d5e':p<=c.amber?'#ffb020':'#2ed47a',thickness=p<=c.flash?34:p<=c.red?29:p<=c.amber?25:22;
- document.documentElement.style.setProperty('--accent',color);document.documentElement.style.setProperty('--glow',color+'66');document.documentElement.style.setProperty('--banner-border',color);
- $('ring').style.strokeDashoffset=L*(1-p/100);$('ring').style.strokeWidth=thickness;
- $('phase').textContent=ended?'FINISHED':phase==='reading'?'📖 READING TIME':'✍ WRITING TIME';$('clock').textContent=fmt(left);
- $('pct').innerHTML='<strong>'+Math.ceil(p)+'%</strong><br><span style="font-size:.72em;letter-spacing:2px">REMAINING</span>';
+ const p=total?Math.max(0,Math.min(100,left/total*100)):0;
+ const color=phase==='reading'?c.readingColour:!c.changeRingColour?c.ringColour:p<=c.red?c.redColour:p<=c.amber?c.amberColour:c.ringColour;
+ document.documentElement.style.setProperty('--accent',color);document.documentElement.style.setProperty('--glow',color+'35');document.documentElement.style.setProperty('--banner-border',color);
+ $('ring').style.strokeDashoffset=L*(1-p/100);
+ $('phase').textContent=ended?'FINISHED':phase==='reading'?'READING TIME':'WRITING TIME';$('clock').textContent=fmt(left);$('clock').classList.toggle('has-hours',Math.round(left)>=3600);
+ $('pct').innerHTML='<strong>'+Math.ceil(p)+'%</strong><span class="pct-label">REMAINING</span>';
  $('elapsed').textContent='Elapsed '+fmt(elapsed);
- $('shell').classList.toggle('flash',currentPage==='timer'&&p<=c.flash&&running);
- $('start').textContent=running?'Running':'▶ '+(elapsed?'Resume':'Start');$('endScreen').classList.toggle('show',ended);
- const status=ended?'Time expired':running?`${phase==='reading'?'Reading':'Writing'} · ${fmt(left)} remaining`:elapsed?`Paused · ${fmt(left)} remaining`:'Timer ready';
+ $('ring').classList.toggle('urgent',currentPage==='timer'&&phase==='exam'&&left>0&&left<=c.pulseMinutes*60&&running&&c.pulseStyle!=='Off'&&!prefersReducedMotion);
+ $('start').textContent=ended?'Finished':running?'Running':'▶ '+(hasStarted?'Resume':'Start');$('start').disabled=running||ended;$('pause').disabled=!running;
+ $('endScreen').classList.toggle('show',ended);$('endScreen').setAttribute('aria-hidden',String(!ended));
+ $('endPlus5').disabled=locked;
+ const status=ended?'Time expired · add time to continue':running?`${phase==='reading'?'Reading':'Writing'} · ${fmt(left)} remaining`:hasStarted?`Paused · ${fmt(left)} remaining`:'Timer ready';
  if($('pageStatus').textContent!==status)$('pageStatus').textContent=status;
+ finishTime();
 }
-function finishTime(){let d=new Date(Date.now()+left*1000+(phase==='reading'?c.exam*1000:0));$('headerFinish').textContent='Finish time: '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
-function tick(){if(!running)return;let previous=left;left=Math.max(0,(target-Date.now())/1000);elapsed=total-left;if(phase==='exam')c.milestones.forEach(m=>{if(previous>m*60&&left<=m*60&&!said.has(m)){said.add(m);announce(`${m} minute${m===1?'':'s'} remaining`)}});if(left<=0){if(phase==='reading'){phase='exam';total=c.exam;left=total;elapsed=0;target=Date.now()+left*1000;said.clear();announce('READING TIME ENDED — WRITING TIME STARTS NOW',4);finishTime()}else{running=false;ended=true;clearInterval(timer);announce(c.endMessage,86400);tone(420,.5)}}render()}
+function finishTime(){
+ if(!running&&!ended&&hasStarted){$('headerFinish').textContent='Paused · finish time updates on resume';return}
+ const finish=ended?endedAt:(running?target:Date.now()+left*1000)+(phase==='reading'?plannedExam*1000:0);
+ $('headerFinish').textContent=(ended?'Finished at: ':running?'Finish time: ':'Estimated finish: ')+new Date(finish).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function clearNotice(){clearTimeout(bannerTimer);bannerTimer=null;$('banner').classList.remove('show')}
+function expire(){
+ endedAt=target||Date.now();left=0;elapsed=total;running=false;ended=true;hasStarted=true;
+ clearInterval(timer);timer=null;clearNotice();
+ if(currentPage!=='timer')showPage('timer');
+ tone(420,.5);
+}
+function beginExam(overrun=0){
+ phase='exam';total=plannedExam;left=Math.max(0,total-overrun);elapsed=total-left;said.clear();
+ target=Date.now()+(total-overrun)*1000;
+ if(left>0)announce('READING TIME ENDED — WRITING TIME STARTS NOW',4);
+ else expire();
+}
+function tick(){
+ if(!running)return;
+ const previous=left,now=Date.now();left=Math.max(0,(target-now)/1000);elapsed=Math.max(0,total-left);
+ if(left<=0){
+  if(phase==='reading')beginExam(Math.max(0,(now-target)/1000));else expire();
+ }else if(phase==='exam'){
+  // A background tab may cross several warnings. Show only the nearest one.
+  const crossed=c.milestones.filter(m=>previous>m*60&&left<=m*60&&!said.has(m));
+  crossed.forEach(m=>said.add(m));
+  if(crossed.length){const m=Math.min(...crossed);announce(`${m} minute${m===1?'':'s'} remaining`)}
+ }
+ render();saveTimer();
+}
 function collapseSidebar(){if(!c.collapseSidebar)return;try{const b=window.parent.document.querySelector('[data-testid="stSidebarCollapseButton"] button');if(b)b.click()}catch(e){}}
-function start(){if(!running&&!ended){running=true;target=Date.now()+left*1000;timer=setInterval(tick,200);finishTime();render();collapseSidebar()}}
-function pause(){if(running){tick();running=false;clearInterval(timer);render()}}
-function reset(){if(locked)return;const ok=window.confirm('Reset the timer and return to the initial reading/exam time?');if(!ok)return;running=false;ended=false;clearInterval(timer);clearTimeout(bannerTimer);phase=c.reading?'reading':'exam';total=c.reading||c.exam;left=total;elapsed=0;said.clear();$('banner').classList.remove('show');$('headerFinish').textContent='Finish time: --:--';render()}
-function adjust(seconds){if(locked)return;left=Math.max(0,left+seconds);total=Math.max(total,left);if(running)target=Date.now()+left*1000;finishTime();render()}
+function start(){if(!running&&!ended&&left>0){running=true;hasStarted=true;target=Date.now()+left*1000;clearInterval(timer);timer=setInterval(tick,200);render();saveTimer(true);collapseSidebar()}}
+function pause(){if(running){tick();if(!ended)running=false;clearInterval(timer);timer=null;render();saveTimer(true)}}
+function reset(){
+ if(locked)return;
+ if(!window.confirm('Reset the timer and use the durations currently selected in Timer setup?'))return;
+ running=false;ended=false;hasStarted=false;endedAt=0;target=0;plannedExam=c.exam;
+ clearInterval(timer);timer=null;clearNotice();clearTimeout(feedbackTimer);$('timeFeedback').textContent='';
+ phase=c.reading?'reading':'exam';total=c.reading||c.exam;left=total;elapsed=0;said.clear();
+ try{sessionStorage.removeItem(storageKey)}catch(e){}
+ render();
+}
+function feedback(text){clearTimeout(feedbackTimer);$('timeFeedback').textContent=text;feedbackTimer=setTimeout(()=>$('timeFeedback').textContent='',7000)}
+function adjust(seconds){
+ if(locked||!Number.isFinite(seconds)||seconds===0)return;
+ // Synchronise with the deadline first, so a late click never revives stale seconds.
+ if(running)tick();
+ const wasEnded=ended,previousLeft=left;
+ left=Math.max(0,left+seconds);const change=left-previousLeft;
+ if(change===0){feedback('No time remaining to subtract.');return}
+ // Adding or removing time changes the allocation, never the elapsed time.
+ total=elapsed+left;
+ c.milestones.forEach(m=>{if(left>m*60)said.delete(m)});
+ clearNotice();
+ if(left>0){
+  if(wasEnded){
+   ended=false;endedAt=0;running=true;hasStarted=true;
+   clearInterval(timer);timer=setInterval(tick,200);
+  }
+  if(running)target=Date.now()+left*1000;
+ }else if(phase==='reading')beginExam();else{target=Date.now();expire()}
+ const minutes=Math.round(Math.abs(change)/60*100)/100;
+ feedback((change>0?'Added ':'Removed ')+minutes+' min'+(wasEnded&&change>0?' · countdown resumed.':'.'));
+ render();saveTimer(true);
+}
+function customAdjust(direction){
+ if(locked)return;
+ const input=$('adjustMinutes');
+ if(!input.checkValidity()||!input.value){input.reportValidity();return}
+ adjust(direction*Number(input.value)*60);
+}
 function manualWarning(text,seconds=5){announce(text,seconds)}
-function toggleLock(){locked=!locked;['plus','plus5','plus10','minus','reset'].forEach(id=>$(id).disabled=locked);$('lock').textContent=locked?'🔓 Unlock Controls':'🔒 Lock Controls';$('lock').classList.toggle('lock-active',locked)}
-$('start').onclick=start;$('pause').onclick=pause;$('reset').onclick=reset;$('plus').onclick=()=>adjust(60);$('plus5').onclick=()=>adjust(300);$('plus10').onclick=()=>adjust(600);$('minus').onclick=()=>adjust(-60);$('warn15').onclick=()=>manualWarning('⚠ 15 MINUTES REMAINING',5);$('warn5').onclick=()=>manualWarning('⚠ 5 MINUTES REMAINING',5);$('stopmsg').onclick=()=>manualWarning('STOP WRITING NOW',8);$('lock').onclick=toggleLock;
+function renderLock(){
+ ['plus','plus5','plus10','minus','minus5','customPlus','customMinus','adjustMinutes','endPlus5','reset'].forEach(id=>$(id).disabled=locked);
+ $('lock').textContent=locked?'🔓 Unlock':'🔒 Lock';$('lock').classList.toggle('lock-active',locked);
+}
+function toggleLock(){locked=!locked;renderLock();saveTimer(true)}
+function saveTimer(force=false){
+ if(!hasStarted)return;
+ const now=Date.now();if(!force&&now-lastSavedAt<1000)return;lastSavedAt=now;
+ try{sessionStorage.setItem(storageKey,JSON.stringify({version:2,phase,total,left,elapsed,running,ended,target,endedAt,plannedExam,locked,said:[...said],page:currentPage}))}catch(e){}
+}
+function restoreTimer(){
+ try{
+  const state=JSON.parse(sessionStorage.getItem(storageKey)||'null');
+  if(!state||state.version!==2||!['reading','exam'].includes(state.phase))return;
+  if(!['total','left','elapsed','target','endedAt','plannedExam'].every(k=>Number.isFinite(state[k])&&state[k]>=0)||state.plannedExam<=0||state.left>state.total)return;
+  if((state.running&&state.ended)||(state.running&&state.target<=0))return;
+  ({phase,total,left,elapsed,running,ended,target,endedAt,plannedExam,locked}=state);
+  said=new Set(Array.isArray(state.said)?state.said:[]);hasStarted=true;
+  if(['instructions','timer','survey'].includes(state.page))currentPage=state.page;
+  renderLock();
+  if((c.reading&&phase==='reading'&&total!==c.reading)||plannedExam!==c.exam)feedback('Live countdown retained. New durations apply on Reset.');
+ }catch(e){}
+}
+$('start').onclick=start;$('pause').onclick=pause;$('reset').onclick=reset;
+$('plus').onclick=()=>adjust(60);$('plus5').onclick=()=>adjust(300);$('plus10').onclick=()=>adjust(600);$('minus').onclick=()=>adjust(-60);$('minus5').onclick=()=>adjust(-300);
+$('customPlus').onclick=()=>customAdjust(1);$('customMinus').onclick=()=>customAdjust(-1);$('endPlus5').onclick=()=>adjust(300);
+$('warn15').onclick=()=>manualWarning('⚠ 15 MINUTES REMAINING',5);$('warn5').onclick=()=>manualWarning('⚠ 5 MINUTES REMAINING',5);$('stopmsg').onclick=()=>manualWarning('STOP WRITING NOW',8);$('lock').onclick=toggleLock;
 async function toggleFullscreen(){try{if(document.fullscreenElement){await document.exitFullscreen()}else{await $('shell').requestFullscreen()}}catch(e){console.warn('Full screen is unavailable in this browser. Use the browser full-screen option instead.')}}
 $('full').onclick=toggleFullscreen;$('instructionsFull').onclick=toggleFullscreen;$('surveyFull').onclick=toggleFullscreen;
 $('instructionsTab').onclick=()=>showPage('instructions');$('timerTab').onclick=()=>showPage('timer');$('showTimer').onclick=()=>showPage('timer');
 $('surveyTab').onclick=()=>showPage('survey');$('surveyTimer').onclick=()=>showPage('timer');
 $('presentMode').onclick=()=>setInstructionMode('presentation');$('overviewMode').onclick=()=>setInstructionMode('overview');$('autoToggle').onclick=toggleInstructionAutoplay;
 $('previousInstruction').onclick=()=>showInstructionSlide(slideIndex-1);$('nextInstruction').onclick=nextInstructionSlide;$('replayBriefing').onclick=replayInstructionBuild;
-document.addEventListener('visibilitychange',()=>{if(document.hidden)stopInstructionAutoplay()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stopInstructionAutoplay();saveTimer(true)}else if(running)tick()});
+window.addEventListener('pagehide',()=>saveTimer(true));
 document.addEventListener('fullscreenchange',scheduleInstructionBoardFit);
+document.addEventListener('fullscreenchange',fitTimer);
+window.addEventListener('resize',fitTimer);
 if(typeof window.addEventListener==='function')window.addEventListener('resize',scheduleInstructionBoardFit);
 if(typeof ResizeObserver==='function'){const boardObserver=new ResizeObserver(scheduleInstructionBoardFit);boardObserver.observe($('instructionGrid'));boardObserver.observe($('instructionsPage'))}
+if(typeof ResizeObserver==='function'){const timerObserver=new ResizeObserver(fitTimer);timerObserver.observe($('timerPage'))}
 document.querySelectorAll('.controls').forEach(control=>control.classList.add('controls-visible'));
 document.addEventListener('keydown',e=>{
  if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
@@ -685,9 +889,12 @@ document.addEventListener('keydown',e=>{
  if(currentPage==='timer'){
   if(e.code==='Space'){e.preventDefault();running?pause():start()}
   if(key==='r')reset();if(key==='l')toggleLock();
+  if(e.key==='+'||e.key==='='){e.preventDefault();adjust(60)}
+  if(e.key==='-'){e.preventDefault();adjust(-60)}
  }
 });
-showPage(c.startPage);
+restoreTimer();showPage(currentPage);
+if(running){tick();if(running)timer=setInterval(tick,200)}
 if(c.instructionAutoplay&&currentPage==='instructions'&&instructionMode==='presentation')toggleInstructionAutoplay();
 </script>
 </body>
@@ -701,6 +908,7 @@ with st.expander("Keyboard controls"):
         "**← / →:** previous/next instruction  |  **P:** play/pause instructions  |  "
         "**O:** presentation/overview  |  **Home / End:** first/last instruction  |  "
         "**Space:** start/pause on the timer page  |  "
+        "**+ / −:** add/subtract one minute on the timer page  |  "
         "**R:** reset on the timer page  |  **L:** lock/unlock on the timer page"
     )
 with st.expander("Subject survey access"):
