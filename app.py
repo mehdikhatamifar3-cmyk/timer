@@ -987,3 +987,4 @@ with st.expander("JCU policy reference (staff)"):
         f"[Student Academic Misconduct Procedure]({JCU_MISCONDUCT_URL}) · "
         f"[Examinations Procedure for Students]({JCU_EXAM_URL})"
     )
+
