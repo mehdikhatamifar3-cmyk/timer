@@ -1,11 +1,11 @@
-# ExamTimer Pro — updated build R5 (24 November 2026)
-# Live presentation speed controls and an expanding completed instruction board.
-# Survey dial revs into green, then settles to the actual response percentage.
+# ExamTimer Pro — updated build R6 (24 November 2026)
+# Choose Light, Midway or Dark, then a coordinated pop-art colour palette.
+# Retains live presentation speed, expanded instructions and the revving survey dial.
 import json
 import streamlit as st
 import streamlit.components.v1 as components
 
-APP_VERSION = "R5"
+APP_VERSION = "R6"
 
 # Checked against JCU's published procedures on 23 November 2026.
 # Classroom directions (names, stapled pages and seating) are local instructions.
@@ -98,7 +98,7 @@ def theme_palette(bg, panel, ring, accent, second, third, track,
 
 
 # Complete, coordinated palettes. There are no legacy themes in this menu.
-THEMES = {
+BASE_THEMES = {
     "Aurora": theme_palette("#101B37", "#1C3154", "#73FFE4", "#B497FF", "#FF7CCC", "#73CFFF", "#425779", muted="#C2DBE9"),
     "Candy Pop": theme_palette("#351638", "#4C2356", "#7AEBFF", "#FF79CA", "#C59AFF", "#FFD477", "#784B7D"),
     "Sunset Glow": theme_palette("#39152F", "#55243B", "#FFD27B", "#FF8B98", "#BC8EFF", "#FFBC67", "#84505F"),
@@ -118,6 +118,86 @@ THEMES = {
     "Bubblegum Sky": theme_palette("#E7F6FF", "#F7FCFF", "#6640BE", "#C33392", "#77CCE6", "#FFB7D6", "#C3D8EF", text="#263958", muted="#576B8B", light=True),
     "Festival Lights": theme_palette("#23123F", "#382052", "#FFDB83", "#FF7AD7", "#79EDE4", "#AD9DFF", "#62427F"),
 }
+
+def mix_colour(first, second, amount):
+    """Mix towards the second colour, using an amount between zero and one."""
+    a = [int(first[i:i + 2], 16) for i in (1, 3, 5)]
+    b = [int(second[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x + (y - x) * amount):02X}" for x, y in zip(a, b))
+
+
+def colour_luminance(colour):
+    channels = [int(colour[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    return sum(c * weight for c, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
+
+
+def readable_colour(colour, background, minimum=4.5):
+    def contrast(candidate):
+        a, b = sorted((colour_luminance(candidate), colour_luminance(background)))
+        return (b + 0.05) / (a + 0.05)
+
+    if contrast(colour) >= minimum:
+        return colour
+    target = "#111126" if colour_luminance(background) >= 0.18 else "#FFFFFF"
+    for amount in range(5, 101, 5):
+        candidate = mix_colour(colour, target, amount / 100)
+        if contrast(candidate) >= minimum:
+            return candidate
+    return target
+
+
+# Saturated pink, cyan, yellow, red, orange and cobalt combinations from the reference.
+POP_FAMILIES = {
+    "Hot Pink": ("#F50087", "#00BBD4", "#FFE000", "#6159E8", "#3B1640"),
+    "Electric Blue": ("#1261FF", "#FF1493", "#FFE300", "#2AC9BF", "#112A52"),
+    "Sunshine Yellow": ("#FFE100", "#005DFF", "#FF1493", "#00C1C8", "#332E00"),
+    "Tangerine Orange": ("#FF8300", "#6E3CFA", "#05BCC8", "#F71879", "#432C24"),
+    "Lime Green": ("#B9F000", "#0066FF", "#FA1594", "#FFAA00", "#234228"),
+    "Turquoise & Coral": ("#00BEBD", "#FF525E", "#FFDC00", "#5544D3", "#103C46"),
+    "Electric Purple": ("#8E37FF", "#D8FF00", "#FF69B6", "#1DD0E0", "#362452"),
+    "Cherry Red": ("#FF2549", "#39C8F5", "#FFE000", "#8A57CF", "#4D1D2F"),
+}
+
+
+def pop_palette(category, colours):
+    primary, second, third, fourth, ink = colours
+    bright = category != "Dark"
+    if category == "Light":
+        bg, panel = mix_colour(primary, "#FFFFFF", .91), mix_colour(primary, "#FFFFFF", .98)
+    elif category == "Midway":
+        bg, panel = mix_colour(primary, "#FFFFFF", .42), mix_colour(primary, "#FFFFFF", .88)
+    else:
+        bg, panel = mix_colour(primary, "#080C1F", .88), mix_colour(primary, "#131B35", .78)
+    text = readable_colour(ink if bright else "#FFF8FE", bg)
+    muted = readable_colour(readable_colour(mix_colour(text, panel, .25), panel), bg)
+    ring = readable_colour(primary, panel)
+    accent = readable_colour(readable_colour(second, panel), bg)
+    track = mix_colour(primary, panel, .76 if bright else .60)
+    result = theme_palette(bg, panel, ring, accent, second, third, track, text=text, muted=muted, light=bright)
+    result.update({
+        "pop-a": primary, "pop-b": second, "pop-c": third, "pop-d": fourth,
+        "ambient-a": primary + ("24" if category == "Light" else "40"),
+        "ambient-b": second + ("20" if category == "Light" else "38"),
+        "ambient-c": third + ("18" if category == "Light" else "30"),
+        "reading": readable_colour(fourth, panel),
+    })
+    return result
+
+
+THEME_GROUPS = {
+    category: {name: pop_palette(category, colours) for name, colours in POP_FAMILIES.items()}
+    for category in ("Light", "Midway", "Dark")
+}
+for name, palette in BASE_THEMES.items():
+    category = "Light" if palette["light"] else "Dark"
+    palette.update({"pop-a": palette["ring-colour"], "pop-b": palette["brand"],
+                    "pop-c": palette["reading"], "pop-d": "#FFE000"})
+    THEME_GROUPS[category][name] = palette
+THEMES = {f"{category} / {name}": palette
+          for category, options in THEME_GROUPS.items() for name, palette in options.items()}
+THEME_COUNT = len(THEMES)
+
 COLOUR_FIELDS = {
     "look_ring": "ring-colour", "look_clock": "clock-text",
     "look_face": "panel", "look_track": "track", "look_background": "bg",
@@ -127,17 +207,28 @@ COLOUR_FIELDS = {
 
 
 def load_theme_colours():
-    selected = THEMES[st.session_state["display_theme_v3"]]
+    category = st.session_state["theme_category_r6"]
+    options = THEME_GROUPS[category]
+    name = st.session_state.get("theme_palette_r6")
+    if name not in options:
+        name = next(iter(options))
+    st.session_state["theme_palette_r6"] = name
+    selected = options[name]
     for widget_key, palette_key in COLOUR_FIELDS.items():
         st.session_state[widget_key] = selected[palette_key]
 
 
-if st.session_state.get("display_theme_v3") not in THEMES:
-    st.session_state["display_theme_v3"] = "Aurora"
+if st.session_state.get("theme_category_r6") not in THEME_GROUPS:
+    st.session_state["theme_category_r6"] = "Light"
+if (st.session_state.get("theme_palette_r6") not in THEME_GROUPS[st.session_state["theme_category_r6"]]
+        or st.session_state.get("theme_controls_revision") != 6):
+    load_theme_colours()
+    st.session_state["theme_controls_revision"] = 6
+current_theme_key = f'{st.session_state["theme_category_r6"]} / {st.session_state["theme_palette_r6"]}'
 for widget_key, palette_key in COLOUR_FIELDS.items():
     # Keep optional pickers' values when their controls are hidden.
     st.session_state[widget_key] = st.session_state.get(
-        widget_key, THEMES[st.session_state["display_theme_v3"]][palette_key]
+        widget_key, THEMES[current_theme_key][palette_key]
     )
 
 st.set_page_config(
@@ -147,31 +238,55 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+settings_palette = THEMES[current_theme_key]
+settings_category = st.session_state["theme_category_r6"]
+settings_bg = (
+    mix_colour(settings_palette["bg"], "#FFFFFF", .35)
+    if settings_category != "Dark" else settings_palette["bg"]
+)
+settings_surface = settings_palette["panel"]
+st.markdown(
+    f'<style>:root{{--settings-bg:{settings_bg};--settings-surface:{settings_surface};'
+    f'--settings-text:{settings_palette["text"]};'
+    f'--settings-muted:{readable_colour(settings_palette["muted"], settings_bg)};'
+    f'--settings-border:{mix_colour(settings_palette["pop-a"], settings_surface, .65)};'
+    f'--settings-accent:{settings_palette["brand"]};'
+    f'--work-bg:{st.session_state["look_background"]};'
+    f'--work-text:{st.session_state["look_text"]};'
+    f'--pop-a:{settings_palette["pop-a"]};--pop-b:{settings_palette["pop-b"]};'
+    f'--pop-c:{settings_palette["pop-c"]};--pop-d:{settings_palette["pop-d"]};}}</style>',
+    unsafe_allow_html=True,
+)
 st.markdown("""
 <style>
-[data-testid="stAppViewContainer"] {background:#07101f;}
+[data-testid="stAppViewContainer"] {background:var(--work-bg);}
+[data-testid="stMain"] [data-testid="stCaptionContainer"] p,
+[data-testid="stMain"] [data-testid="stExpander"] {color:var(--work-text)!important;}
 .block-container {padding:1rem;max-width:1600px;}
-[data-testid="stSidebar"] {background:linear-gradient(165deg,#161c3d,#0b1730 65%);border-right:1px solid #37416b;}
-[data-testid="stSidebar"] [data-testid="stExpander"] {border:1px solid #394569;border-radius:14px;background:rgba(255,255,255,.025);margin-bottom:8px;}
+[data-testid="stSidebar"] {background:var(--settings-bg);border-right:1px solid var(--settings-border);}
+[data-testid="stSidebar"]::before {content:'';display:block;position:sticky;top:0;height:7px;z-index:5;background:linear-gradient(90deg,var(--pop-a) 0% 25%,var(--pop-b) 25% 50%,var(--pop-c) 50% 75%,var(--pop-d) 75%);}
+[data-testid="stSidebar"] [data-testid="stExpander"] {border:1px solid var(--settings-border);border-radius:14px;background:var(--settings-surface);margin-bottom:8px;}
 [data-testid="stSidebar"] [data-testid="stExpander"] summary {font-weight:750;padding-top:12px;padding-bottom:12px;}
 [data-testid="stSidebar"] h1,[data-testid="stSidebar"] h2,[data-testid="stSidebar"] h3,
-[data-testid="stSidebar"] p,[data-testid="stSidebar"] label,[data-testid="stSidebar"] span {color:#fff!important;}
-[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p,[data-testid="stSidebar"] small {color:#d6e2f5!important;opacity:1!important;}
+[data-testid="stSidebar"] p,[data-testid="stSidebar"] label,[data-testid="stSidebar"] span {color:var(--settings-text)!important;}
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p,[data-testid="stSidebar"] small {color:var(--settings-muted)!important;opacity:1!important;}
 [data-testid="stSidebar"] label,[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {font-weight:650!important;}
+[data-testid="stSidebar"] button {background:var(--settings-surface);color:var(--settings-text);border-color:var(--settings-border);}
+[data-testid="stSidebar"] button:hover {border-color:var(--settings-accent);}
 [data-testid="stSidebar"] input {color:#102038!important;background:#fff!important;-webkit-text-fill-color:#102038!important;opacity:1!important;font-weight:650!important;}
 [data-testid="stSidebar"] input::placeholder {color:#607089!important;-webkit-text-fill-color:#607089!important;opacity:1!important;}
 [data-testid="stSidebar"] input:disabled {color:#31445f!important;-webkit-text-fill-color:#31445f!important;background:#e9eef5!important;opacity:1!important;}
 [data-testid="stSidebar"] textarea {color:#102038!important;background:#fff!important;-webkit-text-fill-color:#102038!important;}
 [data-testid="stSidebar"] div[data-baseweb="select"]>div {background:#fff!important;border-color:#b9c7da!important;}
 [data-testid="stSidebar"] div[data-baseweb="select"] span,[data-testid="stSidebar"] div[data-baseweb="select"] svg {color:#102038!important;fill:#102038!important;}
-[data-testid="stSidebar"] [data-testid="stSlider"] div,[data-testid="stSidebar"] [data-testid="stSlider"] span {color:#fff!important;}
-[data-testid="stSidebarCollapseButton"] button,[data-testid="stSidebarCollapseButton"] svg {color:#fff!important;fill:#fff!important;}
+[data-testid="stSidebar"] [data-testid="stSlider"] div,[data-testid="stSidebar"] [data-testid="stSlider"] span {color:var(--settings-text)!important;}
+[data-testid="stSidebarCollapseButton"] button,[data-testid="stSidebarCollapseButton"] svg {color:var(--settings-text)!important;fill:var(--settings-text)!important;}
 </style>
 """, unsafe_allow_html=True)
 
 with st.sidebar:
     st.title("ExamTimer Pro")
-    st.caption(f"Updated build {APP_VERSION} · 18 colourful themes")
+    st.caption(f"Updated build {APP_VERSION} · {THEME_COUNT} colour palettes")
     st.caption("Settings update immediately. Open a section to customise your display.")
     with st.expander("1 · Timer setup", expanded=True):
         title = st.text_input("Exam or subject title", "ME3512 Examination")
@@ -187,18 +302,23 @@ with st.sidebar:
         collapse_sidebar = st.toggle("Collapse sidebar on start", True)
 
     with st.expander("2 · Colours & themes"):
-        theme = st.selectbox(
-            "Display theme", list(THEMES), key="display_theme_v3",
+        theme_category = st.radio(
+            "Theme category", list(THEME_GROUPS), horizontal=True,
+            key="theme_category_r6", on_change=load_theme_colours,
+        )
+        palette_name = st.selectbox(
+            "Colour palette", list(THEME_GROUPS[theme_category]), key="theme_palette_r6",
             on_change=load_theme_colours,
         )
+        theme = f"{theme_category} / {palette_name}"
         chosen = THEMES[theme]
         swatches = "".join(
-            f'<span style="display:inline-block;width:32px;height:12px;'
-            f'border-radius:5px;background:{chosen[name]};margin-right:5px"></span>'
-            for name in ("ring-colour", "brand", "reading", "text", "panel")
+            f'<span style="display:inline-block;width:25%;height:22px;'
+            f'background:{chosen[name]}"></span>'
+            for name in ("pop-a", "pop-b", "pop-c", "pop-d")
         )
-        st.markdown(f'<div style="margin:0 0 12px">{swatches}</div>', unsafe_allow_html=True)
-        st.caption("18 vibrant palettes. Choosing a theme loads its coordinated colours. Fine-tune any colour below.")
+        st.markdown(f'<div style="display:flex;margin:0 0 10px;border-radius:9px;overflow:hidden">{swatches}</div>', unsafe_allow_html=True)
+        st.caption(f"{theme_category} · {len(THEME_GROUPS[theme_category])} palettes. Choose the brightness first, then your colours. You can fine-tune each colour below.")
         left_col, right_col = st.columns(2)
         with left_col:
             ring_colour = st.color_picker("Timer ring", key="look_ring")
@@ -335,6 +455,7 @@ config = {
     "milestones": milestones,
     "endMessage": end_message,
     "theme": theme,
+    "themeCategory": theme_category,
     "lightTheme": THEMES[theme]["light"],
     "palette": {
         key: value for key, value in display_palette.items()
@@ -380,6 +501,9 @@ html = r"""<!doctype html>
 html,body{margin:0;height:100%;overflow:hidden;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
 body.bright-theme{--button-hover:var(--text)}
 .shell{background:radial-gradient(ellipse at 7% 5%,var(--ambient-a),transparent 54%),radial-gradient(ellipse at 96% 92%,var(--ambient-b),transparent 52%),radial-gradient(ellipse at 88% 7%,var(--ambient-c),transparent 44%),var(--bg)!important}
+.shell{position:relative;isolation:isolate}
+.shell::before,.shell::after{content:'';position:absolute;left:0;right:0;height:6px;pointer-events:none;background:linear-gradient(90deg,var(--pop-a) 0% 25%,var(--pop-b) 25% 50%,var(--pop-c) 50% 75%,var(--pop-d) 75%);z-index:1}
+.shell::before{top:0}.shell::after{bottom:0}
 .shell{height:100vh;min-height:0;padding:18px 24px;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;background:radial-gradient(circle at 50% 42%,var(--glow),transparent 34%),var(--bg);transition:.4s}
 .page-nav{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0 8px}
 .page-nav button{font:inherit;font-size:15px;font-weight:800;padding:9px 18px;border:1px solid var(--track);border-radius:999px;color:var(--muted);background:var(--panel);cursor:pointer}
@@ -611,6 +735,7 @@ body.bright-theme .gauge-green-label{fill:#16764C}body.bright-theme .gauge-green
 const c=__CONFIG__,$=id=>document.getElementById(id);
 document.body.classList.toggle('bright-theme',c.lightTheme);
 document.body.dataset.theme=c.theme;
+document.body.dataset.themeCategory=c.themeCategory;
 // Apply on the body itself so no theme rule can hide a selected colour.
 Object.entries(c.palette).forEach(([name,value])=>document.body.style.setProperty('--'+name,value));
 document.body.style.setProperty('--pulse-peak',c.pulseStyle==='Gentle'?'1.075':'1.035');
