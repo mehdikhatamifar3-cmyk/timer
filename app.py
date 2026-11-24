@@ -1,6 +1,11 @@
+# ExamTimer Pro — updated build R5 (24 November 2026)
+# Live presentation speed controls and an expanding completed instruction board.
+# Survey dial revs into green, then settles to the actual response percentage.
 import json
 import streamlit as st
 import streamlit.components.v1 as components
+
+APP_VERSION = "R5"
 
 # Checked against JCU's published procedures on 23 November 2026.
 # Classroom directions (names, stapled pages and seating) are local instructions.
@@ -136,7 +141,7 @@ for widget_key, palette_key in COLOUR_FIELDS.items():
     )
 
 st.set_page_config(
-    page_title="ExamTimer Pro",
+    page_title=f"ExamTimer Pro · {APP_VERSION}",
     page_icon="⏱️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -166,6 +171,7 @@ st.markdown("""
 
 with st.sidebar:
     st.title("ExamTimer Pro")
+    st.caption(f"Updated build {APP_VERSION} · 18 colourful themes")
     st.caption("Settings update immediately. Open a section to customise your display.")
     with st.expander("1 · Timer setup", expanded=True):
         title = st.text_input("Exam or subject title", "ME3512 Examination")
@@ -237,7 +243,8 @@ with st.sidebar:
         start_with_instructions = st.toggle("Open on instructions page", True)
         instruction_view = st.selectbox("Instruction display", ["Presentation", "All instructions"])
         instruction_autoplay = st.toggle("Auto-play instructions", False)
-        instruction_interval = st.slider("Seconds per instruction", 8, 30, 14, 1)
+        instruction_interval = st.slider("Seconds per instruction", 3, 45, 14, 1)
+        st.caption("This is the exact time for each item. Use Faster / Slower on the presentation to change it during auto-play.")
         animate_instructions = st.toggle("Animate instructions", True)
         instruction_font_size = st.slider("Instruction text size", 18, 32, 22, 1)
         permitted_materials = st.text_area(
@@ -249,7 +256,7 @@ with st.sidebar:
             "Extra comments (one per line)", "", height=100, max_chars=3000,
             help="These appear below the main instructions. Leave blank if not needed.",
         )
-        st.caption("Edit the six main instructions below. Presentation builds the board one point at a time.")
+        st.caption("Edit the six main instructions below. Presentation builds the board one point at a time, then expands all items to fill the display. Use Full screen for the largest view.")
         instruction_cards = []
         for index, (heading, default_text) in enumerate(DEFAULT_INSTRUCTIONS):
             text = st.text_area(
@@ -266,6 +273,7 @@ with st.sidebar:
             })
 
     with st.expander("5 · Subject survey"):
+        survey_animation = st.toggle("Animate survey dial", True)
         survey_subject = st.text_input("Survey subject name (optional)", "")
         survey_message = st.text_area(
             "Survey reminder message",
@@ -309,6 +317,7 @@ if exam_seconds <= 0:
     st.stop()
 
 config = {
+    "build": APP_VERSION,
     "title": title,
     "subtitle": subtitle,
     "reading": int(reading_minutes * 60) if reading_on else 0,
@@ -345,6 +354,7 @@ config = {
     "extraComments": [line.strip() for line in extra_comments_raw.splitlines() if line.strip()],
     "integrityMessage": INTEGRITY_MESSAGE,
     "surveySubject": survey_subject.strip(),
+    "surveyAnimation": survey_animation,
     "surveyMessage": survey_message.strip(),
     "surveyTotal": int(survey_total),
     "surveyCompleted": int(survey_completed),
@@ -481,7 +491,7 @@ footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow
 .survey-eyebrow{margin:0 0 12px;font-size:14px;font-weight:850;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
 .survey-gauge{width:100%;max-width:370px;display:block;position:static;inset:auto;transform:none;padding:0;filter:none;overflow:visible}
 .survey-gauge .gauge-track,.survey-gauge .gauge-progress{fill:none;stroke-width:20;stroke-linecap:round}.gauge-track{stroke:var(--track)}.gauge-progress{stroke:var(--participation-color);transition:stroke-dashoffset 1s ease,stroke .5s}
-.gauge-needle{transform-origin:180px 180px;transition:transform 1s cubic-bezier(.2,.8,.2,1)}.gauge-needle line{stroke:var(--text);stroke-width:5;stroke-linecap:round}.gauge-needle circle{fill:var(--text)}
+.gauge-needle{transform-box:view-box;transform-origin:180px 180px;transition:transform .7s cubic-bezier(.2,.8,.2,1)}.gauge-needle line{stroke:var(--participation-color);stroke-width:5;stroke-linecap:round}.gauge-needle circle{fill:var(--participation-color)}
 .gauge-tick{fill:var(--muted);font-size:13px;font-weight:750;font-family:inherit}.participation-value{font-size:clamp(50px,5.8vw,88px);font-weight:950;line-height:1;letter-spacing:-3px;margin:-5px 0 10px;color:var(--text);font-variant-numeric:tabular-nums}
 .participation-count{color:var(--muted);font-size:clamp(17px,1.4vw,23px);line-height:1.4;max-width:360px}
 .participation-status{font-size:clamp(21px,1.8vw,30px);font-weight:850;line-height:1.2;margin:22px 0 0;max-width:360px}
@@ -500,6 +510,25 @@ footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow
 @media(prefers-reduced-motion:reduce){.survey-page *{transition:none!important}}
 @media(max-width:850px){.survey-layout{grid-template-columns:minmax(0,1fr)}.participation-card{padding:20px;display:grid;grid-template-columns:minmax(130px,.75fr) minmax(0,1fr);column-gap:15px}.participation-card .survey-eyebrow{grid-column:1/-1}.survey-gauge{grid-column:1;grid-row:2/5;max-width:250px}.participation-value{font-size:52px;margin:0 0 6px;grid-column:2}.participation-count{grid-column:2;font-size:16px}.participation-status{grid-column:2;font-size:20px;margin:10px 0 0}.survey-title{font-size:34px}.survey-copy{padding:0}.survey-message{font-size:21px}.survey-route li{font-size:19px}}
 /* Timer text is centred in a flat disc; only the ring can pulse. */
+.presentation-speed{display:flex;align-items:center;gap:5px;padding:3px;border:1px solid var(--track);border-radius:13px;background:var(--panel)}
+.presentation-speed .briefing-tool{border:0;padding:6px 9px;font-size:12px}.presentation-speed output{min-width:70px;text-align:center;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text)}
+.presentation-speed button:disabled{opacity:.35;cursor:default;transform:none}
+.instruction-grid.full-board{flex:1 1 0;max-height:none;min-height:0;width:100%;align-self:stretch;align-content:stretch;align-items:stretch}
+.shell.overview-mode .page-status{display:none}.shell.overview-mode .briefing-label{font-size:11px;letter-spacing:1px}
+.shell.overview-mode .title{font-size:clamp(21px,1.8vw,34px)}.shell.overview-mode .title::after{height:3px;margin-top:5px;width:80px}
+.shell.overview-mode .logo{height:32px}.shell.overview-mode .instruction-note{display:none}
+.shell.overview-mode .page-nav{margin:5px 0}.shell.overview-mode .page-nav button{padding:5px 12px;font-size:12px}
+.shell.overview-mode .briefing-tool{padding:6px 10px;font-size:12px}
+.full-board .instruction-card{justify-content:flex-start;gap:9px;padding:clamp(10px,1vw,18px)}
+.full-board .card-heading{grid-template-columns:36px minmax(0,1fr);gap:10px}.full-board .card-heading .card-icon{width:36px;height:36px}
+.full-board .card-heading .card-category{font-size:9px;letter-spacing:1px}
+.full-board .instruction-card .card-title{font-size:clamp(19px,calc(var(--overview-font,30px) * 1.06),64px)}
+.full-board .instruction-card .card-copy{line-height:1.25}
+.gauge-zone{fill:none;stroke-width:6;stroke-linecap:butt;opacity:.7}.gauge-yellow-zone{stroke:#F6C955}.gauge-green-zone{stroke:#6EE7B7}
+.gauge-green-label{fill:#6EE7B7}.gauge-prompt{font-size:clamp(14px,1.15vw,18px);font-weight:750;line-height:1.4;color:var(--muted);max-width:350px;margin:14px 0 0}
+.survey-page.dial-revving .gauge-needle,.survey-page.dial-revving .gauge-progress{transition:none!important}
+.survey-page.dial-revving .gauge-needle{will-change:transform}.survey-page.dial-revving .gauge-progress{filter:drop-shadow(0 0 5px var(--participation-color))}
+body.bright-theme .gauge-green-label{fill:#16764C}body.bright-theme .gauge-green-zone{stroke:#26956A}body.bright-theme .gauge-yellow-zone{stroke:#A66E10}
 .timer,.shell:fullscreen .timer{container-type:inline-size;width:var(--timer-size,48vh);height:var(--timer-size,48vh);min-width:0;min-height:0;max-width:760px;max-height:760px;perspective:none}
 .clock,.shell:fullscreen .clock{font-size:clamp(24px,25cqw,190px);color:var(--clock-text,var(--text))}.clock.has-hours,.shell:fullscreen .clock.has-hours{font-size:clamp(24px,17cqw,130px)}
 .phase,.shell:fullscreen .phase{font-size:clamp(12px,4.5cqw,30px);letter-spacing:.10em}.pct,.shell:fullscreen .pct{font-size:clamp(13px,4.6cqw,30px)}
@@ -538,7 +567,7 @@ footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow
 <main class="instructions-page" id="instructionsPage" aria-label="Before the quiz" tabindex="0" hidden>
 <div class="briefing-toolbar">
 <div class="briefing-label" id="slideCount" aria-live="polite" aria-atomic="true"></div>
-<div class="briefing-tools" aria-label="Instruction presentation controls"><button class="briefing-tool" id="presentMode" aria-pressed="true">Presentation</button><button class="briefing-tool" id="overviewMode" aria-pressed="false">All instructions</button><button class="briefing-tool" id="autoToggle" aria-pressed="false">▶ Auto-play</button><button class="briefing-tool" id="replayBriefing" hidden>↺ Replay</button></div>
+<div class="briefing-tools" aria-label="Instruction presentation controls"><button class="briefing-tool" id="presentMode" aria-pressed="true">Presentation</button><button class="briefing-tool" id="overviewMode" aria-pressed="false">All instructions</button><button class="briefing-tool" id="autoToggle" aria-pressed="false">▶ Auto-play</button><div class="presentation-speed" id="presentationSpeed" role="group" aria-label="Presentation speed"><button class="briefing-tool" id="fasterInstructions" title="One second less per instruction">− Faster</button><output id="instructionSeconds" aria-live="polite">14s / item</output><button class="briefing-tool" id="slowerInstructions" title="One second more per instruction">+ Slower</button></div><button class="briefing-tool" id="replayBriefing" hidden>↺ Replay</button></div>
 </div>
 <section class="spotlight" id="instructionSpotlight" aria-roledescription="slide" aria-label="Quiz instruction">
 <div class="spotlight-art" id="slideArt" aria-hidden="true"></div>
@@ -553,8 +582,9 @@ footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow
 <div class="survey-layout">
 <section class="participation-card" aria-label="Survey participation">
 <h2 class="survey-eyebrow">Subject survey participation</h2>
-<svg class="survey-gauge" viewBox="0 0 360 235" role="img" aria-labelledby="surveyGaugeTitle"><title id="surveyGaugeTitle">Survey participation</title><path class="gauge-track" d="M56 180 A124 124 0 0 1 304 180"/><path class="gauge-progress" id="surveyGaugeProgress" d="M56 180 A124 124 0 0 1 304 180" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/><g class="gauge-needle" id="surveyNeedle"><line x1="180" y1="180" x2="180" y2="79"/><circle cx="180" cy="180" r="9"/></g><text class="gauge-tick" x="41" y="218">0%</text><text class="gauge-tick" x="166" y="35">50%</text><text class="gauge-tick" x="286" y="218">100%</text></svg>
+<svg class="survey-gauge" viewBox="0 0 360 235" role="img" aria-labelledby="surveyGaugeTitle"><title id="surveyGaugeTitle">Survey participation</title><path class="gauge-zone gauge-yellow-zone" d="M43 180 A137 137 0 0 1 317 180" pathLength="100" stroke-dasharray="70 30"/><path class="gauge-zone gauge-green-zone" d="M43 180 A137 137 0 0 1 317 180" pathLength="100" stroke-dasharray="30 70" stroke-dashoffset="-70"/><path class="gauge-track" d="M56 180 A124 124 0 0 1 304 180"/><path class="gauge-progress" id="surveyGaugeProgress" d="M56 180 A124 124 0 0 1 304 180" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/><g class="gauge-needle" id="surveyNeedle"><line x1="180" y1="180" x2="180" y2="79"/><circle cx="180" cy="180" r="9"/></g><text class="gauge-tick" x="41" y="218">0%</text><text class="gauge-tick" x="166" y="22">50%</text><text class="gauge-tick gauge-green-label" x="286" y="218">100%</text></svg>
 <div class="participation-value" id="surveyPercent">—</div><div class="participation-count" id="surveyCount"></div><p class="participation-status" id="surveyStatus"></p>
+<p class="gauge-prompt" id="surveyGoal">Your response helps move us into the green.</p>
 </section>
 <section class="survey-copy">
 <p class="survey-subject" id="surveySubject" hidden></p><h1 class="survey-title">Your feedback can make this subject better.</h1><p class="survey-message" id="surveyMessage"></p>
@@ -574,7 +604,7 @@ footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow
 <div class="controls timer-actions"><div class="control-group"><button class="primary" id="start">▶ Start</button><button id="pause">Ⅱ Pause</button></div><div class="control-group" aria-label="Quick time adjustments"><button id="minus5" title="Subtract five minutes">− 5 min</button><button id="minus" title="Subtract one minute">− 1 min</button><button id="plus" title="Add one minute">+ 1 min</button><button id="plus5" title="Add five minutes, including after time expires">+ 5 min</button><button id="plus10" title="Add ten minutes">+ 10 min</button></div><button id="full">⛶ Full screen</button></div>
 <div class="controls timer-options"><div class="control-group custom-adjust"><label for="adjustMinutes">Minutes</label><input id="adjustMinutes" type="number" min="1" max="720" step="1" value="5" inputmode="numeric"><button id="customMinus" title="Subtract the entered minutes">− Subtract</button><button id="customPlus" title="Add the entered minutes">+ Add</button></div><div class="control-group"><button id="warn15">⚠ 15 min</button><button id="warn5">⚠ 5 min</button><button id="stopmsg">■ Stop writing</button></div><div class="control-group"><button id="reset">↺ Reset</button><button id="lock">🔒 Lock</button></div></div>
 </div>
-<div id="surveyFooter" hidden><div class="controls"><a class="survey-open" id="learnJcuLink" target="_blank" rel="noopener noreferrer">Open LearnJCU ↗</a><button id="surveyFull">⛶ Full Screen</button><button id="surveyTimer">Return to timer</button></div></div>
+<div id="surveyFooter" hidden><div class="controls"><a class="survey-open" id="learnJcuLink" target="_blank" rel="noopener noreferrer">Open LearnJCU ↗</a><button id="revSurvey">↗ Rev the dial</button><button id="surveyFull">⛶ Full Screen</button><button id="surveyTimer">Return to timer</button></div></div>
 </footer>
 </div>
 <script>
@@ -597,25 +627,62 @@ let currentPage=c.startPage;
 document.documentElement.style.setProperty('--instruction-font',c.instructionFontSize+'px');
 const prefersReducedMotion=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(!c.animateInstructions||prefersReducedMotion)$('shell').classList.add('no-instruction-motion');
+let surveyAnimationFrame=null,surveyAnimationToken=0;
+function surveyPercent(){return c.surveyParticipationKnown?Math.max(0,Math.min(100,c.surveyCompleted/c.surveyTotal*100)):0}
+function applySurveyDial(percent){
+ const value=Math.max(0,Math.min(100,percent));
+ const light=c.lightTheme,color=value>=70?(light?'#168456':'#6EE7B7'):(light?'#A66E10':'#F6C955');
+ $('surveyPage').style.setProperty('--participation-color',color);
+ $('surveyGaugeProgress').style.strokeDashoffset=String(100-value);
+ $('surveyNeedle').style.transform='rotate('+(value*1.8-90)+'deg)';
+}
+function stopSurveyAnimation(){
+ if(surveyAnimationFrame!==null)window.cancelAnimationFrame(surveyAnimationFrame);
+ surveyAnimationFrame=null;surveyAnimationToken++;
+ applySurveyDial(surveyPercent());$('surveyPage').classList.remove('dial-revving');
+ $('surveyNeedle').setAttribute('visibility',c.surveyParticipationKnown?'visible':'hidden');
+ $('surveyGoal').textContent='Your response helps move us into the green.';
+}
+function revSurveyDial(){
+ stopSurveyAnimation();
+ if(currentPage!=='survey'||!c.surveyAnimation||prefersReducedMotion||typeof window.requestAnimationFrame!=='function')return;
+ const token=surveyAnimationToken,start=Date.now(),actual=surveyPercent(),peak=Math.max(94,actual);
+ $('surveyPage').classList.add('dial-revving');$('surveyNeedle').setAttribute('visibility','visible');
+ $('surveyGoal').textContent='Imagine this in green. Your feedback can help us get there.';
+ const frame=()=>{
+  if(token!==surveyAnimationToken)return;
+  if(currentPage!=='survey'||document.hidden){stopSurveyAnimation();return}
+  const ms=Date.now()-start;let value;
+  if(ms<1200){
+   const u=ms/1200,ease=u*u*(3-2*u);
+   value=actual+(peak-actual)*ease+Math.sin(ms*.055)*Math.sin(Math.PI*u);
+  }else if(ms<2600){
+   value=peak+Math.sin(ms*.055)*1.2+Math.sin(ms*.091)*.55;
+  }else if(ms<5200){
+   const u=(ms-2600)/2600,ease=1-Math.pow(1-u,3);
+   value=peak+(actual-peak)*ease+Math.sin(ms*.045)*1.5*Math.pow(1-u,2);
+  }else{stopSurveyAnimation();return}
+  applySurveyDial(value);surveyAnimationFrame=window.requestAnimationFrame(frame);
+ };
+ surveyAnimationFrame=window.requestAnimationFrame(frame);
+}
 function updateSurveyReminder(animate=false){
+ stopSurveyAnimation();
  $('surveySubject').textContent=c.surveySubject;$('surveySubject').hidden=!c.surveySubject;
  $('surveyMessage').textContent=c.surveyMessage;$('learnJcuLink').href=c.learnJcuUrl;
- const known=c.surveyParticipationKnown,percent=known?c.surveyCompleted/c.surveyTotal*100:0;
- const color=percent<30?'#ffb865':percent<70?'#f5d166':'#79e6bb';
- $('surveyPage').style.setProperty('--participation-color',color);
+ const known=c.surveyParticipationKnown,percent=surveyPercent();
  $('surveyPercent').textContent=known?Math.round(percent)+'%':'—';
  $('surveyCount').textContent=known?c.surveyCompleted+' of '+c.surveyTotal+' students have responded.':'Add your voice to the feedback.';
  $('surveyStatus').textContent=!known?'Every response matters.':percent<30?'We need more voices.':percent<70?'Help us hear from more students.':'Thank you. Every voice still matters.';
  $('surveyGaugeTitle').textContent=known?'Survey participation: '+c.surveyCompleted+' of '+c.surveyTotal+' students.':'Survey participation figures have not been entered.';
  $('surveyNeedle').setAttribute('visibility',known?'visible':'hidden');
- const applyGauge=()=>{$('surveyGaugeProgress').style.strokeDashoffset=String(100-percent);$('surveyNeedle').style.transform='rotate('+(percent*1.8-90)+'deg)'};
- if(animate&&known&&c.animateInstructions&&!prefersReducedMotion&&typeof window.requestAnimationFrame==='function'){
-  $('surveyGaugeProgress').style.strokeDashoffset='100';$('surveyNeedle').style.transform='rotate(-90deg)';
-  window.requestAnimationFrame(()=>window.requestAnimationFrame(applyGauge));
- }else{applyGauge()}
+ applySurveyDial(percent);
+ $('revSurvey').disabled=!c.surveyAnimation||prefersReducedMotion;
+ if(animate)revSurveyDial();
 }
 updateSurveyReminder();
 let instructionMode=c.instructionMode,slideIndex=0,autoplay=false,autoTimer=null,autoTarget=0,autoDuration=0;
+let instructionSeconds=Math.max(3,Math.min(45,Math.round(Number(c.instructionInterval)||14)));
 let briefingComplete=false,overviewLayoutFrame=null;
 const revealedInstructions=new Set();
 const instructionSlides=[],stepButtons=[],overviewCards=[];
@@ -656,24 +723,31 @@ function fitInstructionBoard(){
  if(grid.hidden||currentPage!=='instructions'||!(grid.clientWidth>0)||!(grid.clientHeight>0))return;
  const visible=overviewCards.filter(card=>!card.hidden);if(!visible.length)return;
  const building=grid.classList.contains('build-grid'),width=grid.clientWidth;
- const availableColumns=building?(width>=1350?4:width>=850?3:width>=560?2:1):(width>=1050?3:width>=680?2:1);
- const columns=Math.min(availableColumns,visible.length);
- const rows=Math.ceil(visible.length/columns),lastSpan=columns-((visible.length-1)%columns);
- grid.style.setProperty('--overview-columns',columns);grid.style.setProperty('--overview-rows',rows);
- overviewCards.forEach(card=>card.style.gridColumn='span 1');visible[visible.length-1].style.gridColumn='span '+lastSpan;
- if(building)grid.style.setProperty('--build-height',Math.min(350,Math.max(116,rows*134))+'px');
+ const maxColumns=Math.min(visible.length,building?(width>=1350?4:width>=850?3:width>=560?2:1):(width>=1100?4:width>=820?3:width>=560?2:1));
+ const layout=columns=>{
+  const rows=Math.ceil(visible.length/columns),lastSpan=columns-((visible.length-1)%columns);
+  grid.style.setProperty('--overview-columns',columns);grid.style.setProperty('--overview-rows',rows);
+  overviewCards.forEach(card=>card.style.gridColumn='span 1');visible[visible.length-1].style.gridColumn='span '+lastSpan;
+  if(building)grid.style.setProperty('--build-height',Math.min(350,Math.max(116,rows*134))+'px');
+ };
+ if(!building)grid.style.removeProperty('--build-height');
  grid.classList.remove('overview-scroll');
- const minimum=building?16:20,goal=building?20:Math.min(38,Math.max(30,c.instructionFontSize+8));
+ const minimum=building?16:18,goal=building?20:Math.min(60,Math.max(40,c.instructionFontSize+18,grid.clientHeight/15));
  const fits=font=>{
   grid.style.setProperty('--overview-font',font+'px');
   return visible.every(card=>card.clientHeight>0&&card.scrollHeight<=card.clientHeight+1&&card.scrollWidth<=card.clientWidth+1);
  };
- if(!fits(minimum)){
-  grid.classList.add('overview-scroll');grid.style.setProperty('--overview-font',(building?18:Math.min(goal,26))+'px');return;
+ let bestFont=0,bestColumns=maxColumns;
+ // Compare full-board layouts and use the one that permits the largest text.
+ for(let columns=building?maxColumns:1;columns<=maxColumns;columns++){
+  layout(columns);if(!fits(minimum))continue;
+  let low=minimum,high=goal,best=minimum;
+  while(low<=high){const middle=Math.floor((low+high)/2);if(fits(middle)){best=middle;low=middle+1}else{high=middle-1}}
+  if(best>bestFont){bestFont=best;bestColumns=columns}
  }
- let low=minimum,high=goal,best=minimum;
- while(low<=high){const middle=Math.floor((low+high)/2);if(fits(middle)){best=middle;low=middle+1}else{high=middle-1}}
- grid.style.setProperty('--overview-font',best+'px');
+ layout(bestColumns);
+ if(!bestFont){grid.classList.add('overview-scroll');bestFont=building?18:Math.max(20,c.instructionFontSize)}
+ grid.style.setProperty('--overview-font',bestFont+'px');
 }
 function scheduleInstructionBoardFit(){
  if(typeof window.requestAnimationFrame==='function'){
@@ -687,6 +761,9 @@ function renderInstructionBoard(){
  const building=!fullBoard&&covered>0;
  $('instructionSpotlight').hidden=fullBoard;$('instructionGrid').hidden=!(fullBoard||building);$('instructionNavigator').hidden=fullBoard;
  $('instructionGrid').classList.toggle('build-grid',building);$('instructionsPage').classList.toggle('building',building);
+ $('instructionGrid').classList.toggle('full-board',fullBoard);
+ $('presentationSpeed').hidden=fullBoard;
+ if(fullBoard)$('instructionGrid').style.removeProperty('--build-height');
  $('instructionGrid').setAttribute('aria-label',fullBoard?'All quiz instructions':'Previously presented instructions');
  $('buildCaption').hidden=!building;$('buildCaptionText').textContent='Already covered · '+covered;
  overviewCards.forEach((card,index)=>{card.hidden=!fullBoard&&(!revealedInstructions.has(index)||index===slideIndex)});
@@ -717,14 +794,22 @@ function buildInstructionSlides(){
 }
 function updateAutoplayControls(){
  $('autoToggle').textContent=autoplay?'Ⅱ Pause':'▶ Auto-play';$('autoToggle').classList.toggle('playing',autoplay);$('autoToggle').setAttribute('aria-pressed',String(autoplay));
+ $('instructionSeconds').textContent=instructionSeconds+'s / item';
+ $('fasterInstructions').disabled=instructionSeconds<=3;$('slowerInstructions').disabled=instructionSeconds>=45;
  if(!autoplay)$('autoStatus').textContent=slideIndex===instructionSlides.length-1?'Final instruction · Select ✓ to complete the board.':'Use ← → to navigate · P to play/pause';
+}
+function setInstructionSpeed(seconds){
+ const progress=autoplay&&autoDuration?Math.max(0,Math.min(1,1-(autoTarget-Date.now())/autoDuration)):0;
+ instructionSeconds=Math.max(3,Math.min(45,Math.round(seconds)));
+ autoDuration=instructionSeconds*1000;
+ if(autoplay)autoTarget=Date.now()+(1-progress)*autoDuration;
+ updateAutoplayControls();if(autoplay)updateInstructionAutoplay();
 }
 function stopInstructionAutoplay(){
  autoplay=false;clearInterval(autoTimer);autoTimer=null;$('slideProgress').style.transform='scaleX(0)';updateAutoplayControls();
 }
 function resetSlideReadingTime(){
- const words=instructionSlides[slideIndex].text.trim().split(/\s+/).filter(Boolean).length;
- autoDuration=Math.max(c.instructionInterval*1000,2500+words*350);autoTarget=Date.now()+autoDuration;
+ autoDuration=instructionSeconds*1000;autoTarget=Date.now()+autoDuration;
 }
 function showInstructionSlide(index,manual=true){
  if(manual)stopInstructionAutoplay();
@@ -743,10 +828,12 @@ function showInstructionSlide(index,manual=true){
  if(autoplay)resetSlideReadingTime();updateAutoplayControls();renderInstructionBoard();
 }
 function setInstructionMode(mode){
+ if(mode==='presentation'&&briefingComplete){replayInstructionBuild();return}
  instructionMode=mode;if(mode==='overview')stopInstructionAutoplay();renderInstructionBoard();
 }
 function finishInstructionBuild(){
- stopInstructionAutoplay();briefingComplete=true;instructionSlides.forEach((_,index)=>revealedInstructions.add(index));renderInstructionBoard();
+ stopInstructionAutoplay();briefingComplete=true;instructionMode='overview';
+ instructionSlides.forEach((_,index)=>revealedInstructions.add(index));renderInstructionBoard();
 }
 function nextInstructionSlide(){
  if(briefingComplete)return;
@@ -764,13 +851,14 @@ function updateInstructionAutoplay(){
 function toggleInstructionAutoplay(){
  if(autoplay){stopInstructionAutoplay();return}
  if(currentPage!=='instructions')return;
- setInstructionMode('presentation');if(briefingComplete||slideIndex===instructionSlides.length-1)replayInstructionBuild();
+ if(briefingComplete)replayInstructionBuild();else setInstructionMode('presentation');
  autoplay=true;resetSlideReadingTime();clearInterval(autoTimer);autoTimer=setInterval(updateInstructionAutoplay,100);updateAutoplayControls();updateInstructionAutoplay();
 }
 buildInstructionSlides();showInstructionSlide(0,false);
 function showPage(page){
  currentPage=page;const instructions=page==='instructions',survey=page==='survey';
  if(!instructions)stopInstructionAutoplay();
+ if(!survey)stopSurveyAnimation();
  $('instructionsPage').hidden=!instructions;$('timerPage').hidden=page!=='timer';$('surveyPage').hidden=!survey;
  $('instructionFooter').hidden=!instructions;$('timerFooter').hidden=page!=='timer';$('surveyFooter').hidden=!survey;
  $('instructionsTab').classList.toggle('active',instructions);$('timerTab').classList.toggle('active',page==='timer');$('surveyTab').classList.toggle('active',survey);
@@ -916,16 +1004,19 @@ async function toggleFullscreen(){try{if(document.fullscreenElement){await docum
 $('full').onclick=toggleFullscreen;$('instructionsFull').onclick=toggleFullscreen;$('surveyFull').onclick=toggleFullscreen;
 $('instructionsTab').onclick=()=>showPage('instructions');$('timerTab').onclick=()=>showPage('timer');$('showTimer').onclick=()=>showPage('timer');
 $('surveyTab').onclick=()=>showPage('survey');$('surveyTimer').onclick=()=>showPage('timer');
+$('revSurvey').onclick=revSurveyDial;
 $('presentMode').onclick=()=>setInstructionMode('presentation');$('overviewMode').onclick=()=>setInstructionMode('overview');$('autoToggle').onclick=toggleInstructionAutoplay;
+$('fasterInstructions').onclick=()=>setInstructionSpeed(instructionSeconds-1);$('slowerInstructions').onclick=()=>setInstructionSpeed(instructionSeconds+1);
 $('previousInstruction').onclick=()=>showInstructionSlide(slideIndex-1);$('nextInstruction').onclick=nextInstructionSlide;$('replayBriefing').onclick=replayInstructionBuild;
-document.addEventListener('visibilitychange',()=>{if(document.hidden){stopInstructionAutoplay();saveTimer(true)}else if(running)tick()});
-window.addEventListener('pagehide',()=>saveTimer(true));
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stopInstructionAutoplay();stopSurveyAnimation();saveTimer(true)}else if(running)tick()});
+window.addEventListener('pagehide',()=>{stopSurveyAnimation();saveTimer(true)});
 document.addEventListener('fullscreenchange',scheduleInstructionBoardFit);
 document.addEventListener('fullscreenchange',fitTimer);
 window.addEventListener('resize',fitTimer);
 if(typeof window.addEventListener==='function')window.addEventListener('resize',scheduleInstructionBoardFit);
 if(typeof ResizeObserver==='function'){const boardObserver=new ResizeObserver(scheduleInstructionBoardFit);boardObserver.observe($('instructionGrid'));boardObserver.observe($('instructionsPage'))}
 if(typeof ResizeObserver==='function'){const timerObserver=new ResizeObserver(fitTimer);timerObserver.observe($('timerPage'))}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(scheduleInstructionBoardFit);
 document.querySelectorAll('.controls').forEach(control=>control.classList.add('controls-visible'));
 document.addEventListener('keydown',e=>{
  if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
@@ -937,6 +1028,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Home'){e.preventDefault();setInstructionMode('presentation');showInstructionSlide(0)}
   if(e.key==='End'){e.preventDefault();setInstructionMode('presentation');showInstructionSlide(instructionSlides.length-1)}
   if(key==='p')toggleInstructionAutoplay();if(key==='o')setInstructionMode(instructionMode==='overview'?'presentation':'overview');
+  if(e.key==='['){e.preventDefault();setInstructionSpeed(instructionSeconds-1)}
+  if(e.key===']'){e.preventDefault();setInstructionSpeed(instructionSeconds+1)}
  }
  if(currentPage==='timer'){
   if(e.code==='Space'){e.preventDefault();running?pause():start()}
@@ -959,6 +1052,7 @@ with st.expander("Keyboard controls"):
         "**I:** instructions  |  **T:** timer  |  **S:** subject survey  |  **F:** full screen  |  "
         "**← / →:** previous/next instruction  |  **P:** play/pause instructions  |  "
         "**O:** presentation/overview  |  **Home / End:** first/last instruction  |  "
+        "**[ / ]:** faster/slower instructions  |  "
         "**Space:** start/pause on the timer page  |  "
         "**+ / −:** add/subtract one minute on the timer page  |  "
         "**R:** reset on the timer page  |  **L:** lock/unlock on the timer page"
@@ -987,4 +1081,3 @@ with st.expander("JCU policy reference (staff)"):
         f"[Student Academic Misconduct Procedure]({JCU_MISCONDUCT_URL}) · "
         f"[Examinations Procedure for Students]({JCU_EXAM_URL})"
     )
-
