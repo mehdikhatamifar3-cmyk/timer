@@ -75,32 +75,65 @@ INTEGRITY_MESSAGE = (
     "reporting; penalties follow the University process."
 )
 
-# Each theme has its own ring colour; a separate picker can override it.
-THEME_COLOURS = {
-    "Aurora": "#64E8CE",
-    "Candy Pop": "#FF82D3",
-    "Sunset Glow": "#FFAE75",
-    "Tropical Lagoon": "#53DDF3",
-    "Electric Violet": "#C59AFF",
-    "Coral Reef": "#FF8A9E",
-    "Peach Sorbet": "#B33D70",
-    "Midnight": "#77ABFF",
-    "Light": "#4165CE",
-    "Slate": "#C4A3FF",
-    "Ocean": "#5CD5F5",
-    "Forest": "#85E0AA",
-    "High Contrast": "#FFF200",
-    "Warm Sand": "#A65030",
-    "JCU Blue & Gold": "#F4C542",
-    "Engineering Graphite": "#FFAF62",
-    "Examination White": "#2459B8",
-    "Lecture Blue": "#6ECAFF",
+def theme_palette(bg, panel, ring, accent, second, third, track,
+                  text="#FAF7FF", muted="#D9CFEB", light=False):
+    return {
+        "bg": bg, "panel": panel, "ring-colour": ring, "track": track,
+        "text": text, "clock-text": text, "muted": muted,
+        "accent": accent, "brand": accent, "glow": accent + "30",
+        "brand-soft": accent + "22", "brand-border": accent + "85",
+        "ambient-a": accent + "50", "ambient-b": second + "40",
+        "ambient-c": third + "45", "face-sheen": ring + "1C",
+        "banner-bg": panel, "banner-text": text, "banner-border": ring,
+        "button-text": muted, "button-hover": text,
+        "reading": accent if light else second,
+        "first-warning": "#A86000" if light else "#FFD477",
+        "final-warning": "#C22D59" if light else "#FF8DA9", "light": light,
+    }
+
+
+# Complete, coordinated palettes. There are no legacy themes in this menu.
+THEMES = {
+    "Aurora": theme_palette("#101B37", "#1C3154", "#73FFE4", "#B497FF", "#FF7CCC", "#73CFFF", "#425779", muted="#C2DBE9"),
+    "Candy Pop": theme_palette("#351638", "#4C2356", "#7AEBFF", "#FF79CA", "#C59AFF", "#FFD477", "#784B7D"),
+    "Sunset Glow": theme_palette("#39152F", "#55243B", "#FFD27B", "#FF8B98", "#BC8EFF", "#FFBC67", "#84505F"),
+    "Tropical Lagoon": theme_palette("#063538", "#0D4B50", "#6AF2DF", "#FF91A6", "#FFDF83", "#63C9FF", "#35737A", muted="#C1E5E4"),
+    "Electric Violet": theme_palette("#24104B", "#3B1E69", "#DFBBFF", "#AAED77", "#FF93D2", "#77CCFF", "#694B91"),
+    "Coral Reef": theme_palette("#34203E", "#4D304F", "#FFA3AD", "#71ECD8", "#FFD183", "#AEB5FF", "#785474"),
+    "Peach Sorbet": theme_palette("#FFF0E5", "#FFF8F2", "#AB2960", "#A24AA0", "#FD9675", "#A991E9", "#E2BFD0", text="#512644", muted="#80526B", light=True),
+    "Neon Arcade": theme_palette("#10172B", "#172442", "#D7FF72", "#FF69BD", "#6DE7FF", "#B995FF", "#344B70"),
+    "Cosmic Burst": theme_palette("#151446", "#272662", "#FFB873", "#78E1FF", "#F498E2", "#B7A0FF", "#504D8B"),
+    "Mango Fiesta": theme_palette("#38230F", "#50351B", "#FFE284", "#FF8BBD", "#6CE1CF", "#FFA059", "#7D6034", muted="#EAD7BD"),
+    "Cherry Blossom": theme_palette("#FFF0F5", "#FFF9FC", "#C22D74", "#8E4BCA", "#FF85B1", "#83CAE6", "#EDCADA", text="#522B4B", muted="#885B76", light=True),
+    "Blueberry Fizz": theme_palette("#112654", "#1B3E70", "#95DBFF", "#F49CDB", "#B4B1FF", "#7FF1C8", "#456A99", muted="#CEDCF4"),
+    "Citrus Splash": theme_palette("#153426", "#244E38", "#D1FA7F", "#FFBC66", "#77E7ED", "#F9D669", "#48785D", muted="#D1E7CE"),
+    "Flamingo Party": theme_palette("#401330", "#5B2347", "#FFA8C2", "#8DE9E1", "#FFD67F", "#B7A3FF", "#85506C"),
+    "Lavender Dream": theme_palette("#F1EDFF", "#FFFBFF", "#7537B0", "#D33A85", "#B39AF1", "#FFAE9A", "#D7C9EF", text="#3C2A65", muted="#6C5B88", light=True),
+    "Dragonfruit": theme_palette("#320F42", "#4A205C", "#DBFF81", "#FF76BC", "#80E6FF", "#FFC97B", "#784387"),
+    "Bubblegum Sky": theme_palette("#E7F6FF", "#F7FCFF", "#6640BE", "#C33392", "#77CCE6", "#FFB7D6", "#C3D8EF", text="#263958", muted="#576B8B", light=True),
+    "Festival Lights": theme_palette("#23123F", "#382052", "#FFDB83", "#FF7AD7", "#79EDE4", "#AD9DFF", "#62427F"),
 }
-RING_COLOURS = {
-    "Mint": "#64E8CE", "Sky blue": "#73CFFF", "Violet": "#C59AFF",
-    "Pink": "#FF82D3", "Coral": "#FF8A9E", "Gold": "#FFD16A",
-    "Lime": "#BCE878", "White": "#F5F8FF", "Classic green": "#2ED47A",
+COLOUR_FIELDS = {
+    "look_ring": "ring-colour", "look_clock": "clock-text",
+    "look_face": "panel", "look_track": "track", "look_background": "bg",
+    "look_text": "text", "look_muted": "muted", "look_reading": "reading",
+    "look_first_warning": "first-warning", "look_final_warning": "final-warning",
 }
+
+
+def load_theme_colours():
+    selected = THEMES[st.session_state["display_theme_v3"]]
+    for widget_key, palette_key in COLOUR_FIELDS.items():
+        st.session_state[widget_key] = selected[palette_key]
+
+
+if st.session_state.get("display_theme_v3") not in THEMES:
+    st.session_state["display_theme_v3"] = "Aurora"
+for widget_key, palette_key in COLOUR_FIELDS.items():
+    # Keep optional pickers' values when their controls are hidden.
+    st.session_state[widget_key] = st.session_state.get(
+        widget_key, THEMES[st.session_state["display_theme_v3"]][palette_key]
+    )
 
 st.set_page_config(
     page_title="ExamTimer Pro",
@@ -116,8 +149,6 @@ st.markdown("""
 [data-testid="stSidebar"] {background:linear-gradient(165deg,#161c3d,#0b1730 65%);border-right:1px solid #37416b;}
 [data-testid="stSidebar"] [data-testid="stExpander"] {border:1px solid #394569;border-radius:14px;background:rgba(255,255,255,.025);margin-bottom:8px;}
 [data-testid="stSidebar"] [data-testid="stExpander"] summary {font-weight:750;padding-top:12px;padding-bottom:12px;}
-[data-testid="stSidebar"] [data-testid="stForm"] {border:0;padding:0;}
-[data-testid="stSidebar"] [data-testid="stFormSubmitButton"] button {width:100%;background:#6957d9;color:#fff;border:1px solid #9a8af1;font-weight:750;border-radius:12px;}
 [data-testid="stSidebar"] h1,[data-testid="stSidebar"] h2,[data-testid="stSidebar"] h3,
 [data-testid="stSidebar"] p,[data-testid="stSidebar"] label,[data-testid="stSidebar"] span {color:#fff!important;}
 [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p,[data-testid="stSidebar"] small {color:#d6e2f5!important;opacity:1!important;}
@@ -135,90 +166,116 @@ st.markdown("""
 
 with st.sidebar:
     st.title("ExamTimer Pro")
-    st.caption("Open a section, make your changes, then apply settings.")
-    # A form batches edits, so opening a picker does not reload the timer.
-    with st.form("display_settings"):
-        with st.expander("1 · Timer setup", expanded=True):
-            title = st.text_input("Exam or subject title", "ME3512 Examination")
-            subtitle = st.text_input("Subtitle", "Please manage your time carefully")
-            c1, c2 = st.columns(2)
-            with c1:
-                hours = st.number_input("Exam hours", 0, 12, 1, 1)
-            with c2:
-                minutes = st.number_input("Exam minutes", 0, 59, 50, 1)
-            reading_on = st.toggle("Include reading time", True)
-            reading_minutes = st.number_input("Reading minutes", 0, 120, 10, 1)
-            st.caption("Reading minutes are used only when reading time is enabled.")
-            collapse_sidebar = st.toggle("Collapse sidebar on start", True)
+    st.caption("Settings update immediately. Open a section to customise your display.")
+    with st.expander("1 · Timer setup", expanded=True):
+        title = st.text_input("Exam or subject title", "ME3512 Examination")
+        subtitle = st.text_input("Subtitle", "Please manage your time carefully")
+        c1, c2 = st.columns(2)
+        with c1:
+            hours = st.number_input("Exam hours", 0, 12, 1, 1)
+        with c2:
+            minutes = st.number_input("Exam minutes", 0, 59, 50, 1)
+        reading_on = st.toggle("Include reading time", True)
+        reading_minutes = st.number_input("Reading minutes", 0, 120, 10, 1, disabled=not reading_on)
+        st.caption("Changing these durations prepares a fresh timer. Use the live + / − controls to change time during an exam.")
+        collapse_sidebar = st.toggle("Collapse sidebar on start", True)
 
-        with st.expander("2 · Colours & themes"):
-            theme = st.selectbox("Display theme", list(THEME_COLOURS))
-            st.caption("Try Aurora, Candy Pop, Sunset Glow or Tropical Lagoon.")
-            ring_choice = st.selectbox(
-                "Timer ring colour", ["Match theme", *RING_COLOURS, "Custom"]
-            )
-            custom_ring_colour = st.color_picker("Custom ring colour", "#A98CFF")
-            st.caption("Select Custom above to use the colour picker.")
-            change_ring_colour = st.toggle("Change ring colour as time runs low", True)
-            reading_colour = st.color_picker("Reading time colour", "#73CFFF")
-            amber_colour = st.color_picker("First warning colour", "#FFD16A")
-            red_colour = st.color_picker("Final warning colour", "#FF718E")
-            show_logo = st.toggle("Show subtle JCU shield", True)
+    with st.expander("2 · Colours & themes"):
+        theme = st.selectbox(
+            "Display theme", list(THEMES), key="display_theme_v3",
+            on_change=load_theme_colours,
+        )
+        chosen = THEMES[theme]
+        swatches = "".join(
+            f'<span style="display:inline-block;width:32px;height:12px;'
+            f'border-radius:5px;background:{chosen[name]};margin-right:5px"></span>'
+            for name in ("ring-colour", "brand", "reading", "text", "panel")
+        )
+        st.markdown(f'<div style="margin:0 0 12px">{swatches}</div>', unsafe_allow_html=True)
+        st.caption("18 vibrant palettes. Choosing a theme loads its coordinated colours. Fine-tune any colour below.")
+        left_col, right_col = st.columns(2)
+        with left_col:
+            ring_colour = st.color_picker("Timer ring", key="look_ring")
+            st.color_picker("Timer face", key="look_face")
+            st.color_picker("Headings", key="look_text")
+            st.color_picker("Background", key="look_background")
+        with right_col:
+            st.color_picker("Timer numbers", key="look_clock")
+            st.color_picker("Ring track", key="look_track")
+            st.color_picker("Supporting text", key="look_muted")
+        separate_reading = st.toggle("Use a different reading ring colour", False, key="separate_reading_v3")
+        reading_colour = (
+            st.color_picker("Reading ring", key="look_reading")
+            if separate_reading else ring_colour
+        )
+        st.caption("Timer ring applies to both reading and writing unless you enable a separate reading colour or warning colours.")
+        st.button("Restore this theme's colours", on_click=load_theme_colours)
+        show_logo = st.toggle("Show subtle JCU shield", True)
 
-        with st.expander("3 · Warnings & sound"):
+    with st.expander("3 · Warnings & sound"):
+        change_ring_colour = st.toggle("Change ring colour for warnings", False, key="warning_colours_v3")
+        amber, red = 50, 20
+        amber_colour = st.session_state["look_first_warning"]
+        red_colour = st.session_state["look_final_warning"]
+        if change_ring_colour:
             amber = st.slider("First colour change below (%)", 10, 80, 50, 5)
             red = st.slider("Final colour change below (%)", 1, 40, 20, 1)
-            pulse_style = st.selectbox("Final-minute pulse", ["Subtle", "Off", "Gentle"])
-            pulse_minutes = st.number_input("Pulse in final minutes", 1, 15, 5, 1)
-            st.caption("A slow pulse on the ring only. The page and timer text stay steady.")
-            sound = st.toggle("Sound alerts", True)
-            milestones_raw = st.text_input("Warnings at minutes remaining", "30, 15, 5, 1")
-            end_message = st.text_input("End message", "TIME EXPIRED — STOP WRITING")
+            first_col, final_col = st.columns(2)
+            with first_col:
+                amber_colour = st.color_picker("First warning ring", key="look_first_warning")
+            with final_col:
+                red_colour = st.color_picker("Final warning ring", key="look_final_warning")
+            st.caption("Warning ring colours replace the writing ring colour at these thresholds.")
+        pulse_style = st.selectbox("Final-minute pulse", ["Subtle", "Off", "Gentle"])
+        pulse_minutes = st.number_input("Pulse in final minutes", 1, 15, 5, 1)
+        st.caption("A slow pulse on the ring only. The page and timer text stay steady.")
+        sound = st.toggle("Sound alerts", True)
+        milestones_raw = st.text_input("Warnings at minutes remaining", "30, 15, 5, 1")
+        end_message = st.text_input("End message", "TIME EXPIRED — STOP WRITING")
 
-        with st.expander("4 · Before the quiz"):
-            start_with_instructions = st.toggle("Open on instructions page", True)
-            instruction_view = st.selectbox("Instruction display", ["Presentation", "All instructions"])
-            instruction_autoplay = st.toggle("Auto-play instructions", False)
-            instruction_interval = st.slider("Seconds per instruction", 8, 30, 14, 1)
-            animate_instructions = st.toggle("Animate instructions", True)
-            instruction_font_size = st.slider("Instruction text size", 18, 32, 22, 1)
-            permitted_materials = st.text_area(
-                "Permitted materials for this quiz",
-                "Standard stationery. Calculators, notes and other materials only if "
-                "expressly permitted for this quiz.", height=100, max_chars=600,
+    with st.expander("4 · Before the quiz"):
+        start_with_instructions = st.toggle("Open on instructions page", True)
+        instruction_view = st.selectbox("Instruction display", ["Presentation", "All instructions"])
+        instruction_autoplay = st.toggle("Auto-play instructions", False)
+        instruction_interval = st.slider("Seconds per instruction", 8, 30, 14, 1)
+        animate_instructions = st.toggle("Animate instructions", True)
+        instruction_font_size = st.slider("Instruction text size", 18, 32, 22, 1)
+        permitted_materials = st.text_area(
+            "Permitted materials for this quiz",
+            "Standard stationery. Calculators, notes and other materials only if "
+            "expressly permitted for this quiz.", height=100, max_chars=600,
+        )
+        extra_comments_raw = st.text_area(
+            "Extra comments (one per line)", "", height=100, max_chars=3000,
+            help="These appear below the main instructions. Leave blank if not needed.",
+        )
+        st.caption("Edit the six main instructions below. Presentation builds the board one point at a time.")
+        instruction_cards = []
+        for index, (heading, default_text) in enumerate(DEFAULT_INSTRUCTIONS):
+            text = st.text_area(
+                heading, default_text, height=115,
+                max_chars=1000, key=f"instruction_{index}",
             )
-            extra_comments_raw = st.text_area(
-                "Extra comments (one per line)", "", height=100, max_chars=3000,
-                help="These appear below the main instructions. Leave blank if not needed.",
-            )
-            st.caption("Edit the six main instructions below. Presentation builds the board one point at a time.")
-            instruction_cards = []
-            for index, (heading, default_text) in enumerate(DEFAULT_INSTRUCTIONS):
-                text = st.text_area(
-                    heading, default_text, height=115,
-                    max_chars=1000, key=f"instruction_{index}",
-                )
-                instruction_cards.append({
-                    "title": heading, "text": text, **INSTRUCTION_VISUALS[index],
-                    "overviewTitle": OVERVIEW_INSTRUCTIONS[index][0],
-                    "overviewText": (
-                        OVERVIEW_INSTRUCTIONS[index][1]
-                        if text.strip() == default_text.strip() else text
-                    ),
-                })
+            instruction_cards.append({
+                "title": heading, "text": text, **INSTRUCTION_VISUALS[index],
+                "overviewTitle": OVERVIEW_INSTRUCTIONS[index][0],
+                "overviewText": (
+                    OVERVIEW_INSTRUCTIONS[index][1]
+                    if text.strip() == default_text.strip() else text
+                ),
+            })
 
-        with st.expander("5 · Subject survey"):
-            survey_subject = st.text_input("Survey subject name (optional)", "")
-            survey_message = st.text_area(
-                "Survey reminder message",
-                "Your feedback inspires new ideas, helps us fix issues, and shows us "
-                "what is working well. Please share your experience so we can improve "
-                "the subject.", height=100, max_chars=800,
-            )
-            survey_total = st.number_input("Students in subject (0 = not set)", 0, 10000, 0, 1)
-            survey_completed = st.number_input("Completed survey responses", 0, 10000, 0, 1)
-            st.caption("Enter current counts from the survey portal; these do not update automatically.")
-        st.form_submit_button("Apply settings")
+    with st.expander("5 · Subject survey"):
+        survey_subject = st.text_input("Survey subject name (optional)", "")
+        survey_message = st.text_area(
+            "Survey reminder message",
+            "Your feedback inspires new ideas, helps us fix issues, and shows us "
+            "what is working well. Please share your experience so we can improve "
+            "the subject.", height=100, max_chars=800,
+        )
+        survey_total = st.number_input("Students in subject (0 = not set)", 0, 10000, 0, 1)
+        survey_completed = st.number_input("Completed survey responses", 0, 10000, 0, 1)
+        st.caption("Enter current counts from the survey portal; these do not update automatically.")
     st.caption("Use + / − below the timer to change a live countdown. Adding time after it ends resumes it immediately.")
 
 survey_participation_known = survey_total > 0 and survey_completed <= survey_total
@@ -227,10 +284,15 @@ if survey_total > 0 and survey_completed > survey_total:
 if red >= amber:
     red = amber - 1
     st.sidebar.info("The final colour change has been placed below the first warning threshold.")
-ring_colour = (
-    custom_ring_colour if ring_choice == "Custom"
-    else RING_COLOURS.get(ring_choice, THEME_COLOURS[theme])
-)
+# The selected theme supplies every colour; visible pickers override it directly.
+display_palette = {**THEMES[theme]}
+for widget_key, palette_key in COLOUR_FIELDS.items():
+    display_palette[palette_key] = st.session_state[widget_key]
+display_palette.update({
+    "banner-bg": display_palette["panel"],
+    "banner-text": display_palette["text"],
+    "face-sheen": ring_colour + "1C",
+})
 
 try:
     milestones = sorted(
@@ -264,6 +326,11 @@ config = {
     "milestones": milestones,
     "endMessage": end_message,
     "theme": theme,
+    "lightTheme": THEMES[theme]["light"],
+    "palette": {
+        key: value for key, value in display_palette.items()
+        if isinstance(value, str) and key not in ("reading", "first-warning", "final-warning")
+    },
     "showLogo": show_logo,
     "collapseSidebar": collapse_sidebar,
     "logo": "https://www.jcu.edu.au/__data/assets/image/0017/2322521/JCU-Logo-Shield-RGB-copy.png",
@@ -301,27 +368,8 @@ html = r"""<!doctype html>
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;overflow:hidden;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
-body.light{--bg:#edf3fb;--panel:#fff;--text:#102038;--muted:#52637b;--track:#d5dfeb;--banner-bg:#102038;--banner-text:#fff;--button-text:#102038}
-body.slate{--bg:#171a21;--panel:#242936;--text:#f7f8fb;--muted:#b8bfcc;--track:#3b4353;--banner-bg:#f7f8fb;--banner-text:#171a21}
-body.ocean{--bg:#041b2d;--panel:#0a3048;--text:#f2fbff;--muted:#abd0df;--track:#1d526b;--banner-bg:#eefbff;--banner-text:#04243a}
-body.forest{--bg:#071c16;--panel:#103128;--text:#f2fff9;--muted:#acd3c3;--track:#285848;--banner-bg:#f1fff8;--banner-text:#0a2b20}
-body.contrast{--bg:#000;--panel:#111;--text:#fff;--muted:#fff;--track:#555;--banner-bg:#fff200;--banner-text:#000;--button-text:#fff}
-body.sand{--bg:#f3ead8;--panel:#fffaf0;--text:#3a2a1e;--muted:#705b48;--track:#d7c4a5;--banner-bg:#342519;--banner-text:#fff8e9;--button-text:#3a2a1e}
-body.jcu{--bg:#061b35;--panel:#0b315a;--text:#f7fbff;--muted:#b9cee0;--track:#285177;--banner-bg:#f4c542;--banner-text:#071b33;--button-text:#fff}
-body.engineering{--bg:#111418;--panel:#242a31;--text:#f3f6f8;--muted:#aeb8c2;--track:#45505c;--banner-bg:#f3f6f8;--banner-text:#111418;--button-text:#f3f6f8}
-body.examwhite{--bg:#f7f8fa;--panel:#fff;--text:#111827;--muted:#4b5563;--track:#d1d5db;--banner-bg:#111827;--banner-text:#fff;--button-text:#111827}
-body.lecture{--bg:#071c33;--panel:#0d3458;--text:#f5fbff;--muted:#b8d4e8;--track:#28577d;--banner-bg:#f5fbff;--banner-text:#092744;--button-text:#fff}
-body.aurora{--bg:#11142e;--panel:#202447;--text:#f5fbff;--muted:#c3c9eb;--track:#414768;--ambient-a:#8062ef26;--ambient-b:#44ddba20;--ambient-c:#559dff16}
-body.candy{--bg:#251430;--panel:#3c224a;--text:#fff5ff;--muted:#e7c3e7;--track:#674165;--ambient-a:#ff69ba29;--ambient-b:#9f87ff26;--ambient-c:#69d4ef14}
-body.sunset{--bg:#30172b;--panel:#482439;--text:#fff6ed;--muted:#f2c7c1;--track:#754254;--ambient-a:#ff8c5029;--ambient-b:#e76b9d24;--ambient-c:#ba87ef17}
-body.tropical{--bg:#062730;--panel:#103c47;--text:#eefffa;--muted:#b6e1dc;--track:#34616a;--ambient-a:#3fd9e526;--ambient-b:#a2e9761c;--ambient-c:#5e9aff1a}
-body.violet{--bg:#1c123b;--panel:#302051;--text:#faf5ff;--muted:#d6c6ef;--track:#59417c;--ambient-a:#ad6bff30;--ambient-b:#ed79ce20;--ambient-c:#6a97ff20}
-body.coral{--bg:#291b32;--panel:#3e2b47;--text:#fff7f4;--muted:#e7cbd9;--track:#6b4b67;--ambient-a:#ff8a9e2c;--ambient-b:#70d9ce1d;--ambient-c:#ffca8517}
-body.peach{--bg:#fff0e7;--panel:#fffaf4;--text:#522d48;--muted:#805c71;--track:#e7c8d7;--banner-bg:#522d48;--banner-text:#fffaf4;--button-text:#69445c;--ambient-a:#ffb19940;--ambient-b:#c0a5ff29;--ambient-c:#ffcf7626}
-body.light,body.sand,body.examwhite,body.peach{--button-hover:var(--text)}
-.shell{background:radial-gradient(ellipse at 8% 10%,var(--ambient-a,#7c70ef18),transparent 48%),radial-gradient(ellipse at 94% 82%,var(--ambient-b,#52d5d514),transparent 48%),radial-gradient(ellipse at 85% 8%,var(--ambient-c,#659bff12),transparent 38%),var(--bg)!important}
-body.peach .slide-kicker,body.peach .slide-copy strong,body.peach .card-category,body.peach .card-copy strong,body.peach .card-icon,body.peach .spotlight-art{color:var(--slide-ink)}
-body.peach .instructions-mode{--accent:#963f75;--glow:#963f7518}
+body.bright-theme{--button-hover:var(--text)}
+.shell{background:radial-gradient(ellipse at 7% 5%,var(--ambient-a),transparent 54%),radial-gradient(ellipse at 96% 92%,var(--ambient-b),transparent 52%),radial-gradient(ellipse at 88% 7%,var(--ambient-c),transparent 44%),var(--bg)!important}
 .shell{height:100vh;min-height:0;padding:18px 24px;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;background:radial-gradient(circle at 50% 42%,var(--glow),transparent 34%),var(--bg);transition:.4s}
 .page-nav{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0 8px}
 .page-nav button{font:inherit;font-size:15px;font-weight:800;padding:9px 18px;border:1px solid var(--track);border-radius:999px;color:var(--muted);background:var(--panel);cursor:pointer}
@@ -367,9 +415,7 @@ body.peach .instructions-mode{--accent:#963f75;--glow:#963f7518}
 .card-copy{font-size:var(--instruction-font,22px);line-height:1.45;margin:0;white-space:pre-line;overflow-wrap:anywhere}
 .instruction-note{font-size:14px;color:var(--muted);margin:8px 0 10px}
 .instructions-mode{--accent:#51c9ff;--glow:#51c9ff22}.instructions-mode .header-finish{display:none}
-body.light .instructions-mode,body.sand .instructions-mode,body.examwhite .instructions-mode{--accent:#006797;--glow:#00679718}
-body.light .slide-kicker,body.sand .slide-kicker,body.examwhite .slide-kicker,body.light .slide-copy strong,body.sand .slide-copy strong,body.examwhite .slide-copy strong,body.light .card-category,body.sand .card-category,body.examwhite .card-category,body.light .card-copy strong,body.sand .card-copy strong,body.examwhite .card-copy strong,body.light .card-icon,body.sand .card-icon,body.examwhite .card-icon,body.light .spotlight-art,body.sand .spotlight-art,body.examwhite .spotlight-art{color:var(--slide-ink)}
-body.contrast .spotlight,body.contrast .instruction-card{background:#111;border-color:#fff}body.contrast .slide-copy strong,body.contrast .card-copy strong{color:#fff200}
+body.bright-theme .slide-kicker,body.bright-theme .slide-copy strong,body.bright-theme .card-category,body.bright-theme .card-copy strong,body.bright-theme .card-icon,body.bright-theme .spotlight-art{color:var(--slide-ink)}
 @keyframes briefEnter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes briefFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-7px) rotate(1deg)}}
 .no-instruction-motion .instructions-page *{animation:none!important;transition:none!important}
@@ -383,7 +429,7 @@ header{text-align:center;position:relative}.logo{position:absolute;left:6px;top:
 .timer>svg{position:absolute;inset:-9%;width:118%;height:118%;padding:9%;overflow:visible;transform:rotate(-90deg);filter:none}.track,.progress{fill:none;stroke-width:22}.track{stroke:var(--track)}.progress{stroke:var(--accent);stroke-linecap:round}
 .content{position:absolute;inset:15%;z-index:2;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;text-align:center}.phase{width:100%;font-size:clamp(15px,1.55vw,23px);font-weight:850;letter-spacing:.11em;line-height:1.25;color:var(--accent)}.clock{width:100%;font-size:clamp(56px,7.4vw,119px);font-weight:900;letter-spacing:-.035em;line-height:1.05;font-variant-numeric:tabular-nums;text-shadow:0 5px 18px #0003;white-space:nowrap}.pct{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:clamp(16px,1.4vw,22px);line-height:1.2;color:var(--muted);font-weight:700}.pct-label{font-size:.64em;letter-spacing:.12em}
 .banner{position:absolute;z-index:4;width:min(92%,900px);padding:30px 38px;border:3px solid var(--banner-border);border-radius:24px;background:var(--banner-bg);color:var(--banner-text);text-align:center;font-size:clamp(28px,4vw,57px);font-weight:950;line-height:1.15;letter-spacing:.3px;box-shadow:0 25px 80px #000b,0 0 35px var(--glow);opacity:0;transform:scale(.85);pointer-events:none;transition:.25s}.banner.show{opacity:1;transform:scale(1)}.markers{position:absolute;inset:0;z-index:1;pointer-events:none}.marker{position:absolute;width:9px;height:9px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 3px var(--panel);opacity:.7}.m75{left:50%;top:3%;transform:translateX(-50%)}.m50{right:3%;top:50%;transform:translateY(-50%)}.m25{left:50%;bottom:3%;transform:translateX(-50%)}.m10{left:9%;top:69%}.end-screen{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;background:radial-gradient(circle,#75131d,#260207 72%);color:#fff;opacity:0;pointer-events:none;transition:.35s}.end-screen.show{opacity:1;pointer-events:auto}.end-main{font-size:clamp(58px,8vw,132px);font-weight:950;letter-spacing:2px}.end-sub{font-size:clamp(30px,4vw,68px);font-weight:900;margin-top:12px}.end-line{width:min(72%,900px);height:5px;background:#fff;margin:24px 0;border-radius:4px}
-footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow:visible}.meta{color:var(--muted);margin:0 0 10px}.controls{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:9px;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important;filter:none!important;position:relative;z-index:12}.controls:hover,.controls:focus-within,.controls.controls-visible{opacity:1!important;visibility:visible!important}.controls button{padding:11px 17px;border-radius:12px;border:1px solid var(--button-border);background:var(--button-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--button-text);font-size:15px;font-weight:750;cursor:pointer;box-shadow:none;opacity:1!important;visibility:visible!important;transition:color .22s ease,background .22s ease,border-color .22s ease,transform .22s ease}.controls button:hover,.controls button:focus-visible{color:var(--button-hover);background:rgba(84,112,148,.22);border-color:rgba(151,176,207,.46);transform:translateY(-1px);outline:none}.controls .primary{background:rgba(46,212,122,.10);color:#93bfa5;border-color:rgba(82,177,121,.25)}.controls .primary:hover{background:rgba(46,212,122,.18);color:#c8ead5;border-color:rgba(82,177,121,.45)}body.light .controls button,body.sand .controls button,body.examwhite .controls button{background:rgba(35,58,84,.07);color:#66778d;border-color:rgba(52,76,105,.17)}body.light .controls button:hover,body.sand .controls button:hover,body.examwhite .controls button:hover{background:rgba(35,58,84,.13);color:#2f435b;border-color:rgba(52,76,105,.32)}.controls button:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.45);box-shadow:none}.controls .lock-active{background:rgba(255,176,32,.14);color:#c9a761;border-color:rgba(255,196,91,.32)}
+footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow:visible}.meta{color:var(--muted);margin:0 0 10px}.controls{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:9px;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important;filter:none!important;position:relative;z-index:12}.controls:hover,.controls:focus-within,.controls.controls-visible{opacity:1!important;visibility:visible!important}.controls button{padding:11px 17px;border-radius:12px;border:1px solid var(--button-border);background:var(--button-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--button-text);font-size:15px;font-weight:750;cursor:pointer;box-shadow:none;opacity:1!important;visibility:visible!important;transition:color .22s ease,background .22s ease,border-color .22s ease,transform .22s ease}.controls button:hover,.controls button:focus-visible{color:var(--button-hover);background:rgba(84,112,148,.22);border-color:rgba(151,176,207,.46);transform:translateY(-1px);outline:none}.controls .primary{background:rgba(46,212,122,.10);color:#93bfa5;border-color:rgba(82,177,121,.25)}.controls .primary:hover{background:rgba(46,212,122,.18);color:#c8ead5;border-color:rgba(82,177,121,.45)}.controls button:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.45);box-shadow:none}.controls .lock-active{background:rgba(255,176,32,.14);color:#c9a761;border-color:rgba(255,196,91,.32)}
 .shell:fullscreen{padding:clamp(18px,2vw,42px)}.shell:fullscreen .stage{padding:20px 34px}.shell:fullscreen .timer{width:min(60vh,68vw);height:min(60vh,68vw);max-width:760px;max-height:760px;margin:12px}.shell:fullscreen .clock{font-size:clamp(100px,12vw,210px)}.shell:fullscreen .phase{font-size:clamp(24px,2.5vw,40px)}.shell:fullscreen .pct{font-size:clamp(20px,2vw,32px)}.shell:fullscreen .title{font-size:clamp(38px,4vw,72px)}.shell:fullscreen .subtitle{font-size:clamp(18px,1.8vw,30px)}.shell:fullscreen .logo{height:clamp(65px,8vh,105px);max-width:140px;opacity:.25}.shell:fullscreen .banner{font-size:clamp(42px,5vw,82px);padding:42px}
 @media(max-width:650px){.shell{padding:10px}.stage{padding:12px}.timer{min-width:280px;min-height:280px;width:min(50vh,82vw);height:min(50vh,82vw);margin:8px}.logo{height:42px}.clock{letter-spacing:-2px}.banner{padding:22px 18px}}
 /* The overview is a full-height instruction board; presentation keeps its hero. */
@@ -429,7 +475,6 @@ footer{text-align:center;position:relative;z-index:10;padding:4px 0 8px;overflow
 @media(max-width:1050px){.instruction-grid{--overview-columns:2}.card-heading{grid-template-columns:40px minmax(0,1fr);gap:10px}.card-heading .card-icon{width:40px;height:40px}.instruction-card{padding:13px 16px}.instruction-card .card-title{letter-spacing:-.3px}}
 @media(max-width:680px){.instruction-grid{--overview-columns:1}.shell.overview-mode .title{font-size:26px}.card-heading{grid-template-columns:38px minmax(0,1fr)}.card-heading .card-icon{width:38px;height:38px}.instructions-page.building .spotlight{grid-template-columns:minmax(0,1fr);padding:18px}.instructions-page.building .slide-title{font-size:28px}.instructions-page.building .slide-copy{font-size:21px}.build-caption{font-size:10px;letter-spacing:.8px}.build-caption span:last-child{display:none}}
 .survey-mode{--accent:#c1a3ff;--glow:#ac85ff24}.survey-mode .header-finish{display:none}
-body.light .survey-mode,body.sand .survey-mode,body.examwhite .survey-mode{--accent:#7041b2;--glow:#7041b218}
 .survey-page{--participation-color:#ffb865;display:flex;flex-direction:column;gap:18px;min-height:0;overflow-y:auto;padding:12px 8px 18px;scrollbar-color:var(--track) var(--bg)}
 .survey-layout{display:grid;grid-template-columns:minmax(270px,.8fr) minmax(0,1.45fr);gap:clamp(20px,2.5vw,44px);align-items:stretch;flex:1;min-height:min-content}
 .participation-card{position:relative;border:1px solid var(--track);border-radius:28px;background:radial-gradient(circle at 50% 26%,#ffb86514,transparent 60%),var(--panel);padding:clamp(20px,2.4vw,42px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden}
@@ -456,12 +501,16 @@ body.light .survey-mode,body.sand .survey-mode,body.examwhite .survey-mode{--acc
 @media(max-width:850px){.survey-layout{grid-template-columns:minmax(0,1fr)}.participation-card{padding:20px;display:grid;grid-template-columns:minmax(130px,.75fr) minmax(0,1fr);column-gap:15px}.participation-card .survey-eyebrow{grid-column:1/-1}.survey-gauge{grid-column:1;grid-row:2/5;max-width:250px}.participation-value{font-size:52px;margin:0 0 6px;grid-column:2}.participation-count{grid-column:2;font-size:16px}.participation-status{grid-column:2;font-size:20px;margin:10px 0 0}.survey-title{font-size:34px}.survey-copy{padding:0}.survey-message{font-size:21px}.survey-route li{font-size:19px}}
 /* Timer text is centred in a flat disc; only the ring can pulse. */
 .timer,.shell:fullscreen .timer{container-type:inline-size;width:var(--timer-size,48vh);height:var(--timer-size,48vh);min-width:0;min-height:0;max-width:760px;max-height:760px;perspective:none}
-.clock,.shell:fullscreen .clock{font-size:clamp(24px,25cqw,190px)}.clock.has-hours,.shell:fullscreen .clock.has-hours{font-size:clamp(24px,17cqw,130px)}
+.clock,.shell:fullscreen .clock{font-size:clamp(24px,25cqw,190px);color:var(--clock-text,var(--text))}.clock.has-hours,.shell:fullscreen .clock.has-hours{font-size:clamp(24px,17cqw,130px)}
 .phase,.shell:fullscreen .phase{font-size:clamp(12px,4.5cqw,30px);letter-spacing:.10em}.pct,.shell:fullscreen .pct{font-size:clamp(13px,4.6cqw,30px)}
-.disc{transform:none;background:radial-gradient(circle at 50% 20%,#ffffff0d,transparent 65%),var(--panel);box-shadow:0 20px 60px #0004,inset 0 1px 0 #ffffff12}
-.progress{animation:none;stroke-width:22!important;filter:drop-shadow(0 0 5px var(--glow));transition:stroke .4s,stroke-dashoffset .2s linear}
+.disc{transform:none;border:1px solid var(--brand-border);background:radial-gradient(ellipse at 30% 12%,var(--face-sheen),transparent 65%),linear-gradient(145deg,#ffffff0b,transparent 70%),var(--panel);box-shadow:0 20px 60px #0004,inset 0 1px 0 #ffffff12}
+.progress{stroke:var(--ring-colour);animation:none;stroke-width:22!important;filter:drop-shadow(0 0 5px var(--ring-glow));transition:stroke .4s,stroke-dashoffset .2s linear}
+.phase{color:var(--ring-colour)}
+.title::after{content:'';display:block;width:110px;height:4px;border-radius:99px;margin:10px auto 0;background:linear-gradient(90deg,var(--brand),var(--ring-colour),var(--brand));opacity:.9}
+.page-nav button.active{background:linear-gradient(135deg,var(--brand-soft),transparent),var(--panel);border-color:var(--brand);box-shadow:0 0 0 1px var(--brand-border)}
+.instructions-mode,.survey-mode{--accent:var(--brand);--glow:var(--brand-soft)}
 .progress.urgent{animation:quietRingPulse 6s ease-in-out infinite}
-@keyframes quietRingPulse{0%,100%{filter:drop-shadow(0 0 4px var(--glow)) brightness(1)}50%{filter:drop-shadow(0 0 6px var(--glow)) brightness(var(--pulse-peak,1.035))}}
+@keyframes quietRingPulse{0%,100%{filter:drop-shadow(0 0 4px var(--ring-glow)) brightness(1)}50%{filter:drop-shadow(0 0 6px var(--ring-glow)) brightness(var(--pulse-peak,1.035))}}
 .controls{gap:8px}.control-group{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px}
 .timer-actions{margin-bottom:9px}.timer-actions>.control-group+.control-group{padding-left:12px;border-left:1px solid var(--track)}
 .controls button{color:var(--muted);background:var(--panel);border-color:var(--track);padding:10px 13px;font-size:14px}
@@ -530,12 +579,11 @@ body.light .survey-mode,body.sand .survey-mode,body.examwhite .survey-mode{--acc
 </div>
 <script>
 const c=__CONFIG__,$=id=>document.getElementById(id);
-const themeClasses={Aurora:'aurora','Candy Pop':'candy','Sunset Glow':'sunset','Tropical Lagoon':'tropical','Electric Violet':'violet','Coral Reef':'coral','Peach Sorbet':'peach',Light:'light',Slate:'slate',Ocean:'ocean',Forest:'forest','High Contrast':'contrast','Warm Sand':'sand','JCU Blue & Gold':'jcu','Engineering Graphite':'engineering','Examination White':'examwhite','Lecture Blue':'lecture'};
-if(themeClasses[c.theme])document.body.classList.add(themeClasses[c.theme]);
-document.documentElement.style.setProperty('--brand',c.ringColour);
-document.documentElement.style.setProperty('--brand-soft',c.ringColour+'18');
-document.documentElement.style.setProperty('--brand-border',c.ringColour+'65');
-document.documentElement.style.setProperty('--pulse-peak',c.pulseStyle==='Gentle'?'1.075':'1.035');
+document.body.classList.toggle('bright-theme',c.lightTheme);
+document.body.dataset.theme=c.theme;
+// Apply on the body itself so no theme rule can hide a selected colour.
+Object.entries(c.palette).forEach(([name,value])=>document.body.style.setProperty('--'+name,value));
+document.body.style.setProperty('--pulse-peak',c.pulseStyle==='Gentle'?'1.075':'1.035');
 $('title').textContent=c.title;$('subtitle').textContent=c.subtitle;
 $('endSub').textContent=c.endMessage.replace(/^TIME EXPIRED\s*[—–:\-]?\s*/i,'')||'STOP WRITING NOW';
 if(c.showLogo){$('logo').src=c.logo}else{$('logo').style.display='none'}
@@ -544,7 +592,7 @@ let phase=c.reading?'reading':'exam',total=c.reading||c.exam,left=total,elapsed=
 let hasStarted=false,plannedExam=c.exam,endedAt=0,lastSavedAt=0,feedbackTimer=null;
 let storagePath=location.pathname;
 try{storagePath=window.parent.location.pathname}catch(e){}
-const storageKey='examtimer-pro:live:v2:'+storagePath;
+const storageKey='examtimer-pro:live:v3:'+storagePath;
 let currentPage=c.startPage;
 document.documentElement.style.setProperty('--instruction-font',c.instructionFontSize+'px');
 const prefersReducedMotion=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -747,7 +795,7 @@ function announce(text,seconds=3){if(currentPage!=='timer')showPage('timer');cle
 function render(){
  const p=total?Math.max(0,Math.min(100,left/total*100)):0;
  const color=phase==='reading'?c.readingColour:!c.changeRingColour?c.ringColour:p<=c.red?c.redColour:p<=c.amber?c.amberColour:c.ringColour;
- document.documentElement.style.setProperty('--accent',color);document.documentElement.style.setProperty('--glow',color+'35');document.documentElement.style.setProperty('--banner-border',color);
+ document.body.style.setProperty('--ring-colour',color);document.body.style.setProperty('--ring-glow',color+'35');document.body.style.setProperty('--banner-border',color);
  $('ring').style.strokeDashoffset=L*(1-p/100);
  $('phase').textContent=ended?'FINISHED':phase==='reading'?'READING TIME':'WRITING TIME';$('clock').textContent=fmt(left);$('clock').classList.toggle('has-hours',Math.round(left)>=3600);
  $('pct').innerHTML='<strong>'+Math.ceil(p)+'%</strong><span class="pct-label">REMAINING</span>';
@@ -841,19 +889,23 @@ function toggleLock(){locked=!locked;renderLock();saveTimer(true)}
 function saveTimer(force=false){
  if(!hasStarted)return;
  const now=Date.now();if(!force&&now-lastSavedAt<1000)return;lastSavedAt=now;
- try{sessionStorage.setItem(storageKey,JSON.stringify({version:2,phase,total,left,elapsed,running,ended,target,endedAt,plannedExam,locked,said:[...said],page:currentPage}))}catch(e){}
+ try{sessionStorage.setItem(storageKey,JSON.stringify({version:3,setupReading:c.reading,setupExam:c.exam,phase,total,left,elapsed,running,ended,target,endedAt,plannedExam,locked,said:[...said],page:currentPage}))}catch(e){}
 }
 function restoreTimer(){
  try{
   const state=JSON.parse(sessionStorage.getItem(storageKey)||'null');
-  if(!state||state.version!==2||!['reading','exam'].includes(state.phase))return;
+  if(!state||state.version!==3||!['reading','exam'].includes(state.phase))return;
+  // Appearance changes retain a live timer. Duration changes must take effect now.
+  if(state.setupReading!==c.reading||state.setupExam!==c.exam){
+   sessionStorage.removeItem(storageKey);currentPage='timer';
+   feedback('New durations applied · ready to start.');return;
+  }
   if(!['total','left','elapsed','target','endedAt','plannedExam'].every(k=>Number.isFinite(state[k])&&state[k]>=0)||state.plannedExam<=0||state.left>state.total)return;
   if((state.running&&state.ended)||(state.running&&state.target<=0))return;
   ({phase,total,left,elapsed,running,ended,target,endedAt,plannedExam,locked}=state);
   said=new Set(Array.isArray(state.said)?state.said:[]);hasStarted=true;
   if(['instructions','timer','survey'].includes(state.page))currentPage=state.page;
   renderLock();
-  if((c.reading&&phase==='reading'&&total!==c.reading)||plannedExam!==c.exam)feedback('Live countdown retained. New durations apply on Reset.');
  }catch(e){}
 }
 $('start').onclick=start;$('pause').onclick=pause;$('reset').onclick=reset;
